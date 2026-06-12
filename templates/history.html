@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>History - DyslexiAI</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<div class="app-layout">
+<aside class="sidebar">
+    <div class="sidebar-brand"><div class="brand-logo">🦉 DyslexiAI</div><div class="brand-sub">Smart Detector</div></div>
+    <div class="sidebar-user"><div class="sidebar-avatar">{{ session.get('username','?')[0]|upper }}</div><div><div class="sidebar-username">{{ session.get('username') }}</div><div class="sidebar-role">Student</div></div></div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
+        <a href="{{ url_for('upload_page') }}" class="nav-item"><span class="nav-icon">📤</span> Upload Word</a>
+        <div class="nav-section-label">Activity</div>
+        <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
+        <a href="{{ url_for('history_page') }}" class="nav-item active"><span class="nav-icon">📋</span> History</a>
+    </nav>
+    <div class="sidebar-footer"><a href="{{ url_for('about_page') }}">ℹ️ About</a><a href="{{ url_for('logout') }}">🚪 Logout</a></div>
+</aside>
+<main class="main-content">
+<div class="topbar"><div class="topbar-title">📋 <span>Screening History</span></div></div>
+<div class="page-content">
+<div class="page-header"><h1>Screening History</h1><p>Your past word screenings.</p></div>
+{% if screenings %}
+<table class="data-table">
+    <thead><tr><th>Date</th><th>Word</th><th>Written</th><th>Result</th><th>Method</th></tr></thead>
+    <tbody>
+    {% for s in screenings %}
+    <tr>
+        <td>{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '' }}</td>
+        <td><strong>{{ s.expected or '—' }}</strong></td>
+        <td>{{ s.written or '—' }}</td>
+        <td>{% if 'No Dyslexia' in (s.risk_level or '') %}<span class="badge badge-green">✅ Correct</span>{% elif 'Dyslexia' in (s.risk_level or '') %}<span class="badge badge-red">🔴 Dyslexia</span>{% else %}<span class="badge badge-amber">⚠️ Practice</span>{% endif %}</td>
+        <td>{{ s.method or '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}<p class="text-muted">No screenings yet. <a href="{{ url_for('upload_page') }}">Start now!</a></p>{% endif %}
+<div class="mt-3"><a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Dashboard</a></div>
+</div>
+</main>
+</div>
+</body>
+</html>

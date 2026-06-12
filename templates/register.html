@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - DyslexiAI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <span class="auth-logo-icon">🦉</span>
+                <div class="auth-logo-name">DyslexiAI</div>
+                <div class="auth-logo-sub">Smart Detector</div>
+            </div>
+            <div class="auth-title">Create your account</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" class="form-input" placeholder="Choose a username" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">Email (optional)</label>
+                <input type="email" id="email" class="form-input" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="Create a password" required>
+            </div>
+            
+            <button class="btn btn-primary btn-full" onclick="register()">Create Account</button>
+            
+            <div class="error-msg" id="errorMsg"></div>
+            <div class="success-msg" id="successMsg"></div>
+            <div class="auth-footer">
+                Already have an account? <a href="{{ url_for('login_page') }}">Sign in</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function register() {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('successMsg').textContent = data.message;
+            setTimeout(() => { window.location.href = '/login'; }, 1500);
+        } else {
+            document.getElementById('errorMsg').textContent = data.error;
+        }
+    }
+    </script>
+</body>
+</html>

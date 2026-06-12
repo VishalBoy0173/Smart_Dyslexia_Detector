@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Progress - DyslexiAI</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
+<body>
+<div class="app-layout">
+<aside class="sidebar">
+    <div class="sidebar-brand"><div class="brand-logo">🦉 DyslexiAI</div><div class="brand-sub">Smart Detector</div></div>
+    <div class="sidebar-user"><div class="sidebar-avatar">{{ session.get('username','?')[0]|upper }}</div><div><div class="sidebar-username">{{ session.get('username') }}</div><div class="sidebar-role">Student</div></div></div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
+        <a href="{{ url_for('upload_page') }}" class="nav-item"><span class="nav-icon">📤</span> Upload Word</a>
+        <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
+        <div class="nav-section-label">Activity</div>
+        <a href="{{ url_for('progress_page') }}" class="nav-item active"><span class="nav-icon">📈</span> Progress</a>
+        <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
+    </nav>
+    <div class="sidebar-footer"><a href="{{ url_for('about_page') }}">ℹ️ About</a><a href="{{ url_for('logout') }}">🚪 Logout</a></div>
+</aside>
+<main class="main-content">
+<div class="topbar"><div class="topbar-title">📈 <span>My Progress</span></div></div>
+<div class="page-content">
+<div class="page-header"><h1>My Progress</h1><p>Track your writing improvement over time.</p></div>
+<div class="stars-row mb-2"><span id="starsDisplay">{% for i in range(stars) %}<span class="star-filled">⭐</span>{% endfor %}{% for i in range(5-stars) %}<span class="star-empty">☆</span>{% endfor %}</span></div>
+<div class="grid-4 mb-3">
+    <div class="stat-card"><div class="stat-number">{{ total }}</div><div class="stat-label">Total Words</div></div>
+    <div class="stat-card"><div class="stat-number green">{{ correct }}</div><div class="stat-label">Correct</div></div>
+    <div class="stat-card"><div class="stat-number red">{{ total - correct }}</div><div class="stat-label">Needs Practice</div></div>
+    <div class="stat-card"><div class="stat-number amber">{{ accuracy }}%</div><div class="stat-label">Accuracy</div></div>
+</div>
+{% if mistakes %}
+<h3 style="font-weight:800;">🔴 Words to Practice</h3>
+<div class="flex flex-wrap gap-1 mt-1 mb-3">
+    {% for m in mistakes %}<span class="badge badge-red">{{ m.word }} ({{ m.count }}×)</span>{% endfor %}
+</div>
+{% endif %}
+<h3 style="font-weight:800;">📝 Recent Activity</h3>
+{% if recent %}
+<table class="data-table mt-1">
+    <thead><tr><th>Date</th><th>Word</th><th>Result</th></tr></thead>
+    <tbody>
+    {% for r in recent %}
+    <tr><td>{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}</td><td>{{ r.expected or '—' }}</td><td>{% if 'No Dyslexia' in (r.risk_level or '') %}<span class="badge badge-green">✅ Correct</span>{% elif 'Dyslexia' in (r.risk_level or '') %}<span class="badge badge-red">🔴 Dyslexia</span>{% else %}<span class="badge badge-amber">⚠️ Practice</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}<p class="text-muted">No activity yet. <a href="{{ url_for('upload_page') }}">Start practicing!</a></p>{% endif %}
+<div class="flex-center gap-2 mt-3"><a href="{{ url_for('upload_page') }}" class="btn btn-success">✏️ Practice More</a><a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Dashboard</a></div>
+</div>
+</main>
+</div>
+</body>
+</html>

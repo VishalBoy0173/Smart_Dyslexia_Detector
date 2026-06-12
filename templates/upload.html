@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Word - DyslexiAI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand"><div class="brand-logo">🦉 DyslexiAI</div><div class="brand-sub">Smart Detector</div></div>
+            <div class="sidebar-user"><div class="sidebar-avatar">{{ session.get('username', '?')[0] | upper }}</div><div><div class="sidebar-username">{{ session.get('username') }}</div><div class="sidebar-role">Student</div></div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Main</div>
+                <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
+                <a href="{{ url_for('upload_page') }}" class="nav-item active"><span class="nav-icon">📤</span> Upload Word</a>
+                <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
+                <div class="nav-section-label">Practice</div>
+                <a href="{{ url_for('practice_page') }}" class="nav-item"><span class="nav-icon">🎮</span> Games</a>
+                <a href="{{ url_for('letter_guide') }}" class="nav-item"><span class="nav-icon">📝</span> Letter Guide</a>
+                <div class="nav-section-label">Activity</div>
+                <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
+                <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
+            </nav>
+            <div class="sidebar-footer"><a href="{{ url_for('about_page') }}">ℹ️ About</a><a href="{{ url_for('logout') }}">🚪 Logout</a></div>
+        </aside>
+
+        <main class="main-content">
+            <div class="topbar"><div class="topbar-title">📤 <span>Upload Word</span></div></div>
+            <div class="page-content">
+                <div class="word-prompt-card">
+                    <div class="word-prompt-label">✏️ Write This Word</div>
+                    <div class="word-prompt-display" id="wordDisplay">dog</div>
+                    <div class="word-prompt-hint">Use small letters on plain white paper</div>
+                    <div class="level-pills">
+                        <button class="level-pill active" onclick="changeLevel('easy')">Easy</button>
+                        <button class="level-pill" onclick="changeLevel('medium')">Medium</button>
+                        <button class="level-pill" onclick="changeLevel('hard')">Hard</button>
+                    </div>
+                    <div style="margin-top:0.5rem;">
+                        <select class="form-select" id="themeSelect" onchange="changeTheme()" style="max-width:200px;display:inline;">
+                            <option value="">📚 All Words</option>
+                            <option value="animals">🐾 Animals</option>
+                            <option value="food">🍎 Food</option>
+                            <option value="colors">🎨 Colors</option>
+                            <option value="actions">🏃 Actions</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-ghost btn-sm mt-1" onclick="newWord()">🔄 New Word</button>
+                </div>
+                <input type="hidden" id="expectedWord" value="dog">
+
+                <div class="upload-zone mt-2" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-zone-icon">📁</div>
+                    <div class="upload-zone-title">Click to upload or drag and drop</div>
+                    <div class="upload-zone-sub">PNG, JPG, JPEG • Max 10MB</div>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" hidden>
+                </div>
+
+                <div id="imagePreview" class="mt-2" style="text-align:center;"></div>
+
+                <div class="flex-center gap-1 mt-2">
+                    <button class="btn btn-success btn-lg" onclick="submitUpload()" id="analyzeBtn" disabled>🔍 Check My Word!</button>
+                    <button class="btn btn-danger btn-lg" id="removeBtn" style="display:none;" onclick="removeImage()">✕ Remove</button>
+                </div>
+
+                <div class="loading-row" id="loading"><div class="spinner"></div> Checking your word...</div>
+
+                <div class="stars-row mt-2 flex-center" id="starProgress" style="display:none;"><span id="starsDisplay"></span></div>
+
+                <div class="result-box" id="resultBox">
+                    <div class="result-emoji" id="resultEmoji"></div>
+                    <div class="result-title" id="resultTitle"></div>
+                    <div class="result-message" id="resultMessage"></div>
+                    <button class="btn btn-primary" onclick="newWordAndReset()">🔄 Try Another Word</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    const wordLists={easy:['dog','cat','big','bed','pig','cup','sun','hat','run','box'],medium:['baby','blue','brown','queen','power','water','wake','name'],hard:['bridge','dragon','bubble','purple','window','mirror','number']};
+    let currentLevel='easy',currentTheme='',selectedFile=null;
+
+    function changeLevel(l){currentLevel=l;document.querySelectorAll('.level-pill').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');newWord();}
+    function changeTheme(){currentTheme=document.getElementById('themeSelect').value;newWord();}
+
+    async function fetchNewWord(){
+        try{let u='/api/get_word?level='+currentLevel;if(currentTheme)u+='&theme='+currentTheme;const r=await fetch(u);const d=await r.json();document.getElementById('wordDisplay').textContent=d.word;document.getElementById('expectedWord').value=d.word;}
+        catch(e){const w=wordLists[currentLevel]||wordLists['easy'];const wo=w[Math.floor(Math.random()*w.length)];document.getElementById('wordDisplay').textContent=wo;document.getElementById('expectedWord').value=wo;}
+    }
+    function newWord(){fetchNewWord();removeImage();hideResult();}
+    function newWordAndReset(){newWord();window.scrollTo({top:0,behavior:'smooth'});}
+    function hideResult(){document.getElementById('resultBox').className='result-box';document.getElementById('resultBox').style.display='none';document.getElementById('starProgress').style.display='none';}
+    function showResult(emoji,title,msg,type){
+        const b=document.getElementById('resultBox');b.className='result-box '+type+' show';b.style.display='block';
+        document.getElementById('resultEmoji').textContent=emoji;document.getElementById('resultTitle').textContent=title;document.getElementById('resultMessage').textContent=msg;
+        fetchStars();b.scrollIntoView({behavior:'smooth'});
+    }
+    async function fetchStars(){
+        try{const r=await fetch('/api/user/stats');const d=await r.json();
+        document.getElementById('starsDisplay').innerHTML='<span class="star-filled">⭐</span>'.repeat(d.stars)+'<span class="star-empty">☆</span>'.repeat(5-d.stars);
+        document.getElementById('starProgress').style.display='flex';}catch(e){}
+    }
+    fetchNewWord();
+
+    const ua=document.getElementById('uploadArea');
+    ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('drag-over');});
+    ua.addEventListener('dragleave',()=>ua.classList.remove('drag-over'));
+    ua.addEventListener('drop',e=>{e.preventDefault();ua.classList.remove('drag-over');previewFile(e.dataTransfer.files[0]);});
+    function handleFileSelect(e){previewFile(e.target.files[0]);}
+    function previewFile(f){
+        if(!f)return;selectedFile=f;document.getElementById('analyzeBtn').disabled=false;document.getElementById('removeBtn').style.display='inline-flex';
+        const r=new FileReader();r.onload=function(e){document.getElementById('imagePreview').innerHTML='<img src="'+e.target.result+'" style="max-width:300px;border-radius:12px;">';};r.readAsDataURL(f);
+    }
+    function removeImage(){selectedFile=null;document.getElementById('fileInput').value='';document.getElementById('imagePreview').innerHTML='';document.getElementById('analyzeBtn').disabled=true;document.getElementById('removeBtn').style.display='none';hideResult();}
+
+    async function submitUpload(){
+        if(!selectedFile)return;
+        const ew=document.getElementById('expectedWord').value.trim();
+        document.getElementById('loading').classList.add('show');document.getElementById('analyzeBtn').disabled=true;hideResult();
+        const fd=new FormData();fd.append('image',selectedFile);fd.append('expected_word',ew);
+        try{
+            const r=await fetch('/predict',{method:'POST',body:fd});const d=await r.json();
+            document.getElementById('loading').classList.remove('show');document.getElementById('analyzeBtn').disabled=false;
+            if(d.error){showResult('⚠️','Oops!',d.error,'unclear');return;}
+            if(d.is_correct)showResult('🌟','Perfect!',d.fun_feedback,'correct');
+            else if(d.has_dyslexia)showResult('🔍','Dyslexia Detected',d.fun_feedback,'dyslexia');
+            else showResult('📝','No Dyslexia',d.fun_feedback,'wrong');
+        }catch(e){document.getElementById('loading').classList.remove('show');document.getElementById('analyzeBtn').disabled=false;showResult('⚠️','Error','Network error.','unclear');}
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - DyslexiAI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <span class="auth-logo-icon">🦉</span>
+                <div class="auth-logo-name">DyslexiAI</div>
+                <div class="auth-logo-sub">Smart Detector</div>
+            </div>
+            <div class="auth-title">Sign in to your account</div>
+            
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+            </div>
+            
+            <button class="btn btn-primary btn-full" onclick="login()">Sign In</button>
+            
+            <div class="error-msg" id="errorMsg"></div>
+            <div class="auth-footer">
+                Don't have an account? <a href="{{ url_for('register_page') }}">Create one here</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function login() {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) { window.location.href = '/dashboard'; }
+        else { document.getElementById('errorMsg').textContent = data.error; }
+    }
+    </script>
+</body>
+</html>

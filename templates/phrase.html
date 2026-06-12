@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Phrase Practice - DyslexiAI{% endblock title %}
+
+{% block topbar_title %}📄 <span>Phrase Practice</span>{% endblock topbar_title %}
+
+{% block content %}
+    <div class="word-prompt-card">
+        <div class="word-prompt-label">📝 Write This Phrase</div>
+        <div class="word-prompt-hint">Write the full phrase on plain white paper.</div>
+        
+        <div class="level-pills">
+            <button class="level-pill active" data-level="easy">Easy</button>
+            <button class="level-pill" data-level="medium">Medium</button>
+            <button class="level-pill" data-level="hard">Hard</button>
+        </div>
+        
+        <div class="word-prompt-display" id="phraseDisplay">big red dog</div>
+        <button class="btn btn-ghost btn-sm mt-1" id="newPhraseBtn">🔄 New Phrase</button>
+    </div>
+
+    <input type="hidden" id="expectedPhrase" value="big red dog">
+
+    <div class="upload-zone mt-2" id="uploadArea">
+        <div class="upload-zone-icon">📁</div>
+        <div class="upload-zone-title">Click to upload or drag and drop</div>
+        <div class="upload-zone-sub">PNG, JPG, JPEG • Max 10MB</div>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <div id="imagePreview" class="mt-2" style="text-align:center;"></div>
+
+    <div class="flex-center gap-1 mt-2">
+        <button class="btn btn-success btn-lg" id="analyzeBtn" disabled>🔍 Check My Phrase!</button>
+        <button class="btn btn-danger btn-lg" id="removeBtn" style="display:none;">✕ Remove</button>
+    </div>
+
+    <div class="loading-row" id="loading"><div class="spinner"></div> Checking your phrase...</div>
+
+    <div class="result-box" id="resultBox">
+        <div class="result-emoji" id="resultEmoji"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-message" id="resultMessage"></div>
+        <button class="btn btn-primary" id="tryAnotherPhraseBtn">🔄 Try Another Phrase</button>
+    </div>
+{% endblock content %}
+
+{% block scripts %}
+<script src="{{ url_for("static", filename="js/phrase.js") }}"></script>
+{% endblock scripts %}

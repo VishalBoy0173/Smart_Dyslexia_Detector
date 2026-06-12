@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Formation Guide - Smart Dyslexia Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5em; margin-top: 2em; }
+        .guide-card { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        .guide-letter { font-size: 5em; font-weight: 700; color: #5b7b94; }
+        .guide-steps { text-align: left; margin-top: 1em; line-height: 1.8; color: #555; font-size: 0.9em; }
+        .reversal-note { background: #fff8e6; border: 1px solid #e8b87a; padding: 0.8em; border-radius: 8px; margin-top: 0.8em; font-size: 0.8em; color: #8a6d3b; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🔍 Smart Dyslexia Detector</div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('progress_page') }}">Progress</a>
+            <a href="{{ url_for('about_page') }}">About</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>✍️ Letter Formation Guide</h1>
+        <p style="color:#7a8a9a;">Learn how to write letters correctly. These are common letters that get reversed in dyslexia.</p>
+
+        <div class="guide-grid">
+            {% for letter, steps in guides.items() %}
+            <div class="guide-card">
+                <div class="guide-letter">{{ letter }}</div>
+                <div class="guide-steps">{{ steps | replace('\n', '<br>') | safe }}</div>
+                {% if letter in ['b','d','p','q'] %}
+                <div class="reversal-note">⚠️ This letter has a mirror partner: <strong>{{ {'b':'d','d':'b','p':'q','q':'p'}[letter] }}</strong>. Make sure it faces the right way!</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <br>
+        <div style="text-align:center;">
+            <a href="{{ url_for('upload_page') }}" style="display:inline-block; padding:0.8em 2em; background:#7ba587; color:white; text-decoration:none; border-radius:8px; font-weight:600;">✏️ Practice Now</a>
+            &nbsp;
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Formation Guide - Smart Dyslexia Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5em; margin-top: 2em; }
+        .guide-card { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        .guide-letter { font-size: 5em; font-weight: 700; color: #5b7b94; }
+        .guide-steps { text-align: left; margin-top: 1em; line-height: 1.8; color: #555; font-size: 0.9em; }
+        .reversal-note { background: #fff8e6; border: 1px solid #e8b87a; padding: 0.8em; border-radius: 8px; margin-top: 0.8em; font-size: 0.8em; color: #8a6d3b; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🔍 Smart Dyslexia Detector</div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('progress_page') }}">Progress</a>
+            <a href="{{ url_for('about_page') }}">About</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>✍️ Letter Formation Guide</h1>
+        <p style="color:#7a8a9a;">Learn how to write letters correctly. These are common letters that get reversed in dyslexia.</p>
+
+        <div class="guide-grid">
+            {% for letter, steps in guides.items() %}
+            <div class="guide-card">
+                <div class="guide-letter">{{ letter }}</div>
+                <div class="guide-steps">{{ steps | replace('\n', '<br>') | safe }}</div>
+                {% if letter in ['b','d','p','q'] %}
+                <div class="reversal-note">⚠️ This letter has a mirror partner: <strong>{{ {'b':'d','d':'b','p':'q','q':'p'}[letter] }}</strong>. Make sure it faces the right way!</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <br>
+        <div style="text-align:center;">
+            <a href="{{ url_for('upload_page') }}" style="display:inline-block; padding:0.8em 2em; background:#7ba587; color:white; text-decoration:none; border-radius:8px; font-weight:600;">✏️ Practice Now</a>
+            &nbsp;
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
