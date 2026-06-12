@@ -1,12 +1,10 @@
 import os
-import time
 import json
 import random
 from datetime import datetime
 from functools import wraps
 from difflib import SequenceMatcher
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_file
-from difflib import SequenceMatcher
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17,17 +15,9 @@ from spellchecker import SpellChecker
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as pdf_canvas
 import io
-import mysql.connector
-import cv2
-import numpy as np
-from spellchecker import SpellChecker
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas as pdf_canvas
-import io
 
 # ─── Flask Setup ─────────────────
 app = Flask(__name__)
-app.secret_key = 'smart-dyslexia-detector-secret-key-2025'
 app.secret_key = 'smart-dyslexia-detector-secret-key-2025'
 CORS(app)
 
@@ -44,8 +34,6 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 SOUND_FOLDER = os.path.join('static', 'sounds')
 WORKSHEET_FOLDER = os.path.join('static', 'worksheets')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(SOUND_FOLDER, exist_ok=True)
-os.makedirs(WORKSHEET_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
@@ -722,9 +710,9 @@ def api_register():
             (data['username'], data.get('email', ''), hashed)
         )
         conn.commit()
+        
         return jsonify({'success': True, 'message': 'Registration successful!'})
-    except mysql.connector.IntegrityError:
-        return jsonify({'success': True, 'message': 'Registration successful!'})
+    
     except mysql.connector.IntegrityError:
         return jsonify({'error': 'Username already exists'}), 409
     finally:
@@ -746,7 +734,6 @@ def api_login():
     conn.close()
     if user and check_password_hash(user['password_hash'], data['password']):
         session['user_id'] = user['id']
-        session['username'] = user['username']
         session['username'] = user['username']
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid username or password'}), 401
