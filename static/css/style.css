@@ -335,7 +335,11 @@ img { max-width: 100%; }
   outline: none;
   transition: border-color 0.18s;
 }
-.form-select:focus { border-color: var(--primary-light); }
+
+.form-select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+}
 
 /* ── Badge / chip ── */
 .badge {
@@ -442,6 +446,7 @@ img { max-width: 100%; }
   border-radius: 12px;
   margin: 0.5rem 0;
   min-width: 200px;
+  transition: transform 0.2s ease;
 }
 .word-prompt-hint {
   font-size: 0.8rem;

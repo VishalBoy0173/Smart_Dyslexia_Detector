@@ -34,9 +34,9 @@
                     <div class="word-prompt-display" id="wordDisplay">dog</div>
                     <div class="word-prompt-hint">Use small letters on plain white paper</div>
                     <div class="level-pills">
-                        <button class="level-pill active" onclick="changeLevel('easy')">Easy</button>
-                        <button class="level-pill" onclick="changeLevel('medium')">Medium</button>
-                        <button class="level-pill" onclick="changeLevel('hard')">Hard</button>
+                        <button class="level-pill active" data-level="easy" onclick="changeLevel('easy', event)">Easy</button>
+                        <button class="level-pill" data-level="medium" onclick="changeLevel('medium', event)">Medium</button>
+                        <button class="level-pill" data-level="hard" onclick="changeLevel('hard', event)">Hard</button>
                     </div>
                     <div style="margin-top:0.5rem;">
                         <select class="form-select" id="themeSelect" onchange="changeTheme()" style="max-width:200px;display:inline;">
@@ -45,11 +45,14 @@
                             <option value="food">🍎 Food</option>
                             <option value="colors">🎨 Colors</option>
                             <option value="actions">🏃 Actions</option>
+                            <option value="nature">🌿 Nature</option>
                         </select>
+                        <button onclick="toggleLanguage()" id="langBtn" style="padding:0.5em 1em; border-radius:8px; border:1px solid #d4c4b0; cursor:pointer; background:white; font-size:0.85em; margin-left:0.3em;">🇬🇧 English</button>
                     </div>
                     <button class="btn btn-ghost btn-sm mt-1" onclick="newWord()">🔄 New Word</button>
                 </div>
                 <input type="hidden" id="expectedWord" value="dog">
+                <input type="hidden" id="currentLang" value="english">
 
                 <div class="upload-zone mt-2" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                     <div class="upload-zone-icon">📁</div>
@@ -75,61 +78,325 @@
                     <div class="result-message" id="resultMessage"></div>
                     <button class="btn btn-primary" onclick="newWordAndReset()">🔄 Try Another Word</button>
                 </div>
+                
+                <!-- Audio elements for feedback -->
+                <audio id="soundCorrect" preload="auto">
+                    <source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg">
+                </audio>
+                <audio id="soundReversal" preload="auto">
+                    <source src="{{ url_for('static', filename='sounds/tryagain.mp3') }}" type="audio/mpeg">
+                </audio>
+                <audio id="soundError" preload="auto">
+                    <source src="{{ url_for('static', filename='sounds/oops.mp3') }}" type="audio/mpeg">
+                </audio>
             </div>
         </main>
     </div>
 
     <script>
-    const wordLists={easy:['dog','cat','big','bed','pig','cup','sun','hat','run','box'],medium:['baby','blue','brown','queen','power','water','wake','name'],hard:['bridge','dragon','bubble','purple','window','mirror','number']};
-    let currentLevel='easy',currentTheme='',selectedFile=null;
+    // Word lists organized by level and theme
+    const wordLists = {
+        easy: {
+            default: ['dog', 'cat', 'big', 'bed', 'pig', 'cup', 'sun', 'hat', 'run', 'box', 'map', 'bus', 'pen', 'top', 'pin', 'bag', 'log', 'pot', 'dig', 'bug'],
+            animals: ['dog', 'cat', 'pig', 'cow', 'hen', 'bat', 'fox', 'owl', 'bee', 'ant'],
+            food: ['bun', 'jam', 'pie', 'nut', 'egg', 'fig', 'yam', 'rye', 'ham', 'pea'],
+            colors: ['red', 'tan', 'blue', 'pink', 'lime', 'teal', 'plum', 'rose', 'navy', 'gold'],
+            actions: ['run', 'hop', 'dig', 'jog', 'mix', 'fix', 'row', 'bow', 'tip', 'tap'],
+            nature: ['sun', 'sky', 'mud', 'oak', 'fog', 'dew', 'bud', 'log', 'pod', 'gem']
+        },
+        medium: {
+            default: ['baby', 'blue', 'brown', 'queen', 'power', 'water', 'wake', 'name', 'duck', 'bird', 'play', 'jump', 'read', 'park', 'ball', 'down'],
+            animals: ['duck', 'bird', 'fish', 'bear', 'deer', 'frog', 'wolf', 'seal', 'crab', 'dove'],
+            food: ['bread', 'apple', 'grape', 'peach', 'mango', 'berry', 'lemon', 'olive', 'prune', 'dates'],
+            colors: ['purple', 'silver', 'bronze', 'violet', 'indigo', 'maroon', 'copper', 'crimson'],
+            actions: ['jump', 'play', 'read', 'swim', 'sing', 'draw', 'bake', 'walk', 'ride', 'cook'],
+            nature: ['cloud', 'river', 'stone', 'flame', 'ocean', 'storm', 'field', 'bloom', 'frost', 'coral']
+        },
+        hard: {
+            default: ['bridge', 'dragon', 'bubble', 'purple', 'window', 'mirror', 'number', 'quarter', 'dinner', 'double', 'pretty', 'wonder', 'blanket', 'problem'],
+            animals: ['rabbit', 'dragon', 'puppy', 'pony', 'eagle', 'zebra', 'whale', 'tiger', 'mouse', 'snail'],
+            food: ['banana', 'cherry', 'orange', 'potato', 'tomato', 'carrot', 'celery', 'raisin', 'walnut', 'almond'],
+            colors: ['magenta', 'turquoise', 'lavender', 'chartreuse', 'cerulean', 'vermillion'],
+            actions: ['dance', 'climb', 'paint', 'build', 'write', 'dream', 'laugh', 'explore', 'garden', 'travel'],
+            nature: ['forest', 'garden', 'desert', 'island', 'jungle', 'canyon', 'meadow', 'planet', 'thunder', 'glacier']
+        }
+    };
+    
+    let currentLevel = 'easy';
+    let currentTheme = '';
+    let currentLang = 'english';
+    let selectedFile = null;
 
-    function changeLevel(l){currentLevel=l;document.querySelectorAll('.level-pill').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');newWord();}
-    function changeTheme(){currentTheme=document.getElementById('themeSelect').value;newWord();}
+    function changeLevel(level, event) {
+        currentLevel = level;
+        // Update active state on buttons
+        document.querySelectorAll('.level-pill').forEach(btn => btn.classList.remove('active'));
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            // Fallback: find button with matching data-level
+            document.querySelectorAll('.level-pill').forEach(btn => {
+                if (btn.getAttribute('data-level') === level) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        newWord();
+    }
 
-    async function fetchNewWord(){
-        try{let u='/api/get_word?level='+currentLevel;if(currentTheme)u+='&theme='+currentTheme;const r=await fetch(u);const d=await r.json();document.getElementById('wordDisplay').textContent=d.word;document.getElementById('expectedWord').value=d.word;}
-        catch(e){const w=wordLists[currentLevel]||wordLists['easy'];const wo=w[Math.floor(Math.random()*w.length)];document.getElementById('wordDisplay').textContent=wo;document.getElementById('expectedWord').value=wo;}
+    function changeTheme() {
+        currentTheme = document.getElementById('themeSelect').value;
+        newWord();
     }
-    function newWord(){fetchNewWord();removeImage();hideResult();}
-    function newWordAndReset(){newWord();window.scrollTo({top:0,behavior:'smooth'});}
-    function hideResult(){document.getElementById('resultBox').className='result-box';document.getElementById('resultBox').style.display='none';document.getElementById('starProgress').style.display='none';}
-    function showResult(emoji,title,msg,type){
-        const b=document.getElementById('resultBox');b.className='result-box '+type+' show';b.style.display='block';
-        document.getElementById('resultEmoji').textContent=emoji;document.getElementById('resultTitle').textContent=title;document.getElementById('resultMessage').textContent=msg;
-        fetchStars();b.scrollIntoView({behavior:'smooth'});
-    }
-    async function fetchStars(){
-        try{const r=await fetch('/api/user/stats');const d=await r.json();
-        document.getElementById('starsDisplay').innerHTML='<span class="star-filled">⭐</span>'.repeat(d.stars)+'<span class="star-empty">☆</span>'.repeat(5-d.stars);
-        document.getElementById('starProgress').style.display='flex';}catch(e){}
-    }
-    fetchNewWord();
 
-    const ua=document.getElementById('uploadArea');
-    ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('drag-over');});
-    ua.addEventListener('dragleave',()=>ua.classList.remove('drag-over'));
-    ua.addEventListener('drop',e=>{e.preventDefault();ua.classList.remove('drag-over');previewFile(e.dataTransfer.files[0]);});
-    function handleFileSelect(e){previewFile(e.target.files[0]);}
-    function previewFile(f){
-        if(!f)return;selectedFile=f;document.getElementById('analyzeBtn').disabled=false;document.getElementById('removeBtn').style.display='inline-flex';
-        const r=new FileReader();r.onload=function(e){document.getElementById('imagePreview').innerHTML='<img src="'+e.target.result+'" style="max-width:300px;border-radius:12px;">';};r.readAsDataURL(f);
+    function toggleLanguage() {
+        currentLang = currentLang === 'english' ? 'malay' : 'english';
+        const langBtn = document.getElementById('langBtn');
+        langBtn.textContent = currentLang === 'english' ? '🇬🇧 English' : '🇲🇾 Malay';
+        document.getElementById('currentLang').value = currentLang;
+        newWord();
     }
-    function removeImage(){selectedFile=null;document.getElementById('fileInput').value='';document.getElementById('imagePreview').innerHTML='';document.getElementById('analyzeBtn').disabled=true;document.getElementById('removeBtn').style.display='none';hideResult();}
 
-    async function submitUpload(){
-        if(!selectedFile)return;
-        const ew=document.getElementById('expectedWord').value.trim();
-        document.getElementById('loading').classList.add('show');document.getElementById('analyzeBtn').disabled=true;hideResult();
-        const fd=new FormData();fd.append('image',selectedFile);fd.append('expected_word',ew);
-        try{
-            const r=await fetch('/predict',{method:'POST',body:fd});const d=await r.json();
-            document.getElementById('loading').classList.remove('show');document.getElementById('analyzeBtn').disabled=false;
-            if(d.error){showResult('⚠️','Oops!',d.error,'unclear');return;}
-            if(d.is_correct)showResult('🌟','Perfect!',d.fun_feedback,'correct');
-            else if(d.has_dyslexia)showResult('🔍','Dyslexia Detected',d.fun_feedback,'dyslexia');
-            else showResult('📝','No Dyslexia',d.fun_feedback,'wrong');
-        }catch(e){document.getElementById('loading').classList.remove('show');document.getElementById('analyzeBtn').disabled=false;showResult('⚠️','Error','Network error.','unclear');}
+    async function fetchNewWord() {
+        try {
+            let url = '/api/get_word?level=' + currentLevel;
+            if (currentTheme) url += '&theme=' + currentTheme;
+            if (currentLang === 'malay') url += '&lang=malay';
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('wordDisplay').textContent = data.word;
+            document.getElementById('expectedWord').value = data.word;
+        } catch (err) {
+            console.error('Error fetching word:', err);
+            // Fallback to local word list
+            const themeWords = wordLists[currentLevel] && wordLists[currentLevel][currentTheme] 
+                ? wordLists[currentLevel][currentTheme] 
+                : wordLists[currentLevel].default;
+            const word = themeWords[Math.floor(Math.random() * themeWords.length)];
+            document.getElementById('wordDisplay').textContent = word;
+            document.getElementById('expectedWord').value = word;
+        }
     }
+
+    function newWord() {
+        fetchNewWord();
+        removeImage();
+        hideResult();
+    }
+
+    function newWordAndReset() {
+        newWord();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hideResult() {
+        const resultBox = document.getElementById('resultBox');
+        resultBox.style.display = 'none';
+        resultBox.className = 'result-box';
+        document.getElementById('starProgress').style.display = 'none';
+    }
+
+    function playSound(type) {
+        const soundMap = {
+            'correct': 'soundCorrect',
+            'reversal': 'soundReversal',
+            'error': 'soundError'
+        };
+        const soundId = soundMap[type];
+        if (soundId) {
+            const audio = document.getElementById(soundId);
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+    }
+
+    function showResult(emoji, title, message, type) {
+        const resultBox = document.getElementById('resultBox');
+        resultBox.className = 'result-box ' + type + ' show';
+        resultBox.style.display = 'block';
+        document.getElementById('resultEmoji').textContent = emoji;
+        document.getElementById('resultTitle').textContent = title;
+        document.getElementById('resultMessage').textContent = message;
+        
+        // Play appropriate sound
+        if (type === 'correct') {
+            playSound('correct');
+        } else if (type === 'dyslexia') {
+            playSound('reversal');
+        } else {
+            playSound('error');
+        }
+        
+        fetchStars();
+        resultBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function fetchStars() {
+        try {
+            const response = await fetch('/api/user/stats');
+            const data = await response.json();
+            const starsDisplay = document.getElementById('starsDisplay');
+            if (starsDisplay) {
+                starsDisplay.innerHTML = '<span class="star-filled">⭐</span>'.repeat(data.stars) + 
+                                        '<span class="star-empty">☆</span>'.repeat(5 - data.stars);
+                document.getElementById('starProgress').style.display = 'flex';
+            }
+        } catch (err) {
+            console.error('Error fetching stats:', err);
+        }
+    }
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            previewFile(file);
+        } else {
+            alert('Please upload an image file (PNG, JPG, JPEG)');
+        }
+    });
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            previewFile(file);
+        }
+    }
+
+    function previewFile(file) {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please upload a valid image file (PNG, JPG, JPEG, WEBP)');
+            return;
+        }
+        
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File is too large! Maximum size is 10MB.');
+            return;
+        }
+        
+        selectedFile = file;
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('removeBtn').style.display = 'inline-flex';
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewDiv = document.getElementById('imagePreview');
+            previewDiv.innerHTML = `
+                <div style="position: relative; display: inline-block;">
+                    <img src="${e.target.result}" style="max-width: 300px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <div style="margin-top: 8px; font-size: 0.8em; color: #7a8a9a;">
+                        ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                    </div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+        hideResult();
+    }
+
+    function removeImage() {
+        selectedFile = null;
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.value = '';
+        document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('removeBtn').style.display = 'none';
+        hideResult();
+    }
+
+    async function submitUpload() {
+        if (!selectedFile) {
+            alert('Please select an image first!');
+            return;
+        }
+        
+        const expectedWord = document.getElementById('expectedWord').value.trim();
+        if (!expectedWord) {
+            alert('No word selected! Please refresh the page.');
+            return;
+        }
+        
+        const loadingDiv = document.getElementById('loading');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        
+        loadingDiv.classList.add('show');
+        analyzeBtn.disabled = true;
+        hideResult();
+        
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+        formData.append('expected_word', expectedWord);
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            const data = await response.json();
+            
+            loadingDiv.classList.remove('show');
+            analyzeBtn.disabled = false;
+            
+            if (data.error) {
+                showResult('⚠️', 'Oops!', data.error, 'unclear');
+                return;
+            }
+            
+            if (data.is_correct) {
+                showResult('🌟', 'Perfect!', data.fun_feedback, 'correct');
+            } else if (data.has_dyslexia) {
+                // Show detailed reversal info if available
+                let feedback = data.fun_feedback;
+                if (data.reversal_details && data.reversal_details.length > 0) {
+                    const reversedLetters = data.reversal_details.map(r => r.expected).join(', ');
+                    feedback += ` (Reversed letters: ${reversedLetters})`;
+                }
+                showResult('🔍', 'Dyslexia Detected', feedback, 'dyslexia');
+            } else {
+                showResult('📝', 'No Dyslexia', data.fun_feedback, 'wrong');
+            }
+        } catch (err) {
+            loadingDiv.classList.remove('show');
+            analyzeBtn.disabled = false;
+            console.error('Upload error:', err);
+            
+            if (err.name === 'AbortError') {
+                showResult('⚠️', 'Timeout', 'The server is taking too long to respond. Please try again.', 'unclear');
+            } else {
+                showResult('⚠️', 'Error', 'Network error. Please check your connection and try again.', 'unclear');
+            }
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchNewWord();
+        fetchStars();
+    });
     </script>
 </body>
 </html>
