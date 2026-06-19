@@ -1,226 +1,179 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Writing - Smart Dyslexia Detector</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .container { max-width: 950px; margin: 2em auto; padding: 1em; }
-        .word-prompt { background: white; padding: 2em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 1.5em; text-align: center; }
-        .word-display { font-size: 5em; font-weight: 700; color: #2c3e50; background: #f0f4ff; padding: 0.3em 0.8em; border-radius: 8px; border-left: 6px solid #5b7b94; margin: 0.5em 0; }
-        .canvas-area { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .guide-note { background: #f0f7ff; border: 1px solid #b0c8e0; border-radius: 8px; padding: 0.7em 1em; margin-bottom: 1em; font-size: 0.85em; color: #5b7b94; text-align: center; }
-        .canvas-wrapper { display: inline-block; border: 2px solid #c0c8d0; border-radius: 8px; background: #FFFFFF; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        #writingCanvas { display: block; cursor: crosshair; background: #FFFFFF; }
-        .action-buttons { margin-top: 1.2em; display: flex; justify-content: center; gap: 1em; }
-        .btn-analyze { padding: 0.8em 2em; font-size: 1em; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; background: #7ba587; color: white; }
-        .btn-analyze:hover { background: #6a9476; }
-        .btn-clear { padding: 0.8em 2em; font-size: 1em; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; background: #c97b7b; color: white; }
-        .btn-clear:hover { background: #b86a6a; }
-        .loading { text-align: center; padding: 1em; font-size: 1.1em; color: #5b7b94; display: none; }
-        .navbar { background: #2c3e50; color: white; padding: 1em 2em; display: flex; justify-content: space-between; align-items: center; }
-        .navbar a { color: white; text-decoration: none; margin-left: 1.5em; }
-        .navbar a:hover { text-decoration: underline; }
-        .level-selector { margin: 0.8em 0; display: flex; justify-content: center; gap: 0.8em; flex-wrap: wrap; }
-        .level-selector button { padding: 0.5em 1.2em; border: 2px solid #d4c4b0; border-radius: 25px; cursor: pointer; font-size: 0.85em; font-weight: 600; background: white; color: #5b7b94; }
-        .level-selector button.active { background: #5b7b94; color: white; border-color: #5b7b94; }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-brand">🔍 Smart Dyslexia Detector</div>
-        <div class="nav-links">
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('progress_page') }}">Progress</a>
-            <a href="{{ url_for('history_page') }}">History</a>
-            <a href="{{ url_for('about_page') }}">About</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+{% extends "base.html" %}
+
+{% block title %}Canvas Writing - DyslexiAI{% endblock %}
+{% block topbar_title %}✍️ <span>Canvas Writing</span>{% endblock %}
+
+{% block content %}
+<style>
+    .canvas-container { max-width: 950px; margin: 0 auto; }
+    .canvas-area { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
+    .guide-note { background: var(--primary-bg); border-radius: var(--radius-sm); padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--primary); }
+    .canvas-wrapper { display: inline-block; border: 2px solid var(--border); border-radius: var(--radius-sm); background: white; }
+    #writingCanvas { display: block; cursor: crosshair; background: white; }
+    .action-buttons { margin-top: 1.2rem; display: flex; justify-content: center; gap: 1rem; }
+    .level-selector { margin: 0.8rem 0; display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+    .level-selector button { padding: 0.5rem 1.2rem; border: 2px solid var(--border); border-radius: 25px; cursor: pointer; font-weight: 600; background: white; color: var(--text-muted); }
+    .level-selector button.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .word-display { font-size: 5rem; font-weight: 900; color: var(--primary); background: var(--primary-bg); padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); margin: 0.5rem 0; }
+</style>
+
+<div class="canvas-container">
+    <div class="word-prompt-card">
+        <div class="word-prompt-label">📝 Write This Word</div>
+        <div class="level-selector">
+            <button onclick="changeLevel('easy')" id="btnEasy" class="active">Easy</button>
+            <button onclick="changeLevel('medium')" id="btnMedium">Medium</button>
+            <button onclick="changeLevel('hard')" id="btnHard">Hard</button>
         </div>
-    </nav>
-
-    <div class="container">
-        <h1>✍️ Canvas Writing</h1>
-
-        <div class="word-prompt">
-            <h3>📝 Write This Word</h3>
-            <p style="color:#7a8a9a; font-size:0.9em;">Write <strong>one letter per box</strong> using small letters.</p>
-            
-            <div class="level-selector">
-                <button onclick="changeLevel('easy')" id="btnEasy" class="active">Easy</button>
-                <button onclick="changeLevel('medium')" id="btnMedium">Medium</button>
-                <button onclick="changeLevel('hard')" id="btnHard">Hard</button>
-            </div>
-            
-            <div style="margin:0.5em 0;">
-                <select id="themeSelect" onchange="changeTheme()" style="padding:0.5em; border-radius:8px; border:1px solid #d4c4b0; font-size:0.85em;">
-                    <option value="">📚 All Words</option>
-                    <option value="animals">🐾 Animals</option>
-                    <option value="food">🍎 Food</option>
-                    <option value="colors">🎨 Colors</option>
-                </select>
-                <button onclick="toggleLanguage()" id="langBtn" style="padding:0.5em 1em; border-radius:8px; border:1px solid #d4c4b0; cursor:pointer; background:white; font-size:0.85em; margin-left:0.3em;">🇬🇧 English</button>
-            </div>
-            
-            <div class="word-display" id="wordDisplay">dog</div>
-            <button onclick="newWord()" style="padding:0.6em 1.5em; background:#5b7b94; color:white; border:none; border-radius:8px; cursor:pointer; font-size:0.9em; font-weight:600;">New Word</button>
-            <p style="font-size:0.75em; color:#7a8a9a; margin-top:0.5em;" id="levelLabel">3 letters</p>
+        <div style="margin:0.5rem 0;">
+            <select id="themeSelect" onchange="changeTheme()" class="form-select" style="width:auto;display:inline-block;">
+                <option value="">📚 All Words</option>
+                <option value="animals">🐾 Animals</option>
+                <option value="food">🍎 Food</option>
+                <option value="colors">🎨 Colors</option>
+            </select>
+            <button onclick="toggleLanguage()" id="langBtn" class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:white;">🇬🇧 English</button>
         </div>
+        <div class="word-display" id="wordDisplay">dog</div>
+        <button class="btn btn-ghost btn-sm" onclick="newWord()">🔄 New Word</button>
+        <p class="word-prompt-hint" id="levelLabel">3 letters</p>
+    </div>
+    <input type="hidden" id="expectedWord" value="dog">
 
-        <input type="hidden" id="expectedWord" value="dog">
-
-        <div class="canvas-area">
-            <h3>Write in the Boxes</h3>
-            <div class="guide-note">Write <strong>one letter per box</strong>. Faint lines will not affect the result.</div>
-            
-            <div class="canvas-wrapper">
-                <canvas id="writingCanvas" width="600" height="180"></canvas>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn-clear" onclick="confirmClear()">Clear</button>
-                <button class="btn-analyze" onclick="submitCanvas()" id="analyzeCanvasBtn">Check My Word</button>
-            </div>
-            <div class="loading" id="canvasLoading">Checking your word...</div>
+    <div class="canvas-area mt-2">
+        <h3>Write in the Boxes</h3>
+        <div class="guide-note">Write <strong>one letter per box</strong> using small letters.</div>
+        <div class="canvas-wrapper">
+            <canvas id="writingCanvas" width="600" height="180"></canvas>
         </div>
-
-        <div id="starProgress" style="text-align:center; margin:1em 0; padding:1em; background:#fffef5; border-radius:8px; display:none;">
-            <p style="font-size:0.9em; color:#7a8a9a;">Your Progress</p>
-            <div id="starsDisplay" style="font-size:2.5em;"></div>
-            <p style="font-size:0.85em; color:#7a8a9a;" id="progressStats"></p>
+        <div class="action-buttons">
+            <button class="btn btn-danger" onclick="confirmClear()">Clear</button>
+            <button class="btn btn-success" onclick="submitCanvas()" id="analyzeCanvasBtn">Check My Word</button>
         </div>
-
-        <div id="resultBox" style="padding:2em; border-radius:12px; text-align:center; margin-top:1em; display:none;">
-            <div style="font-size:5em; margin-bottom:0.3em;" id="resultEmoji"></div>
-            <h2 style="margin:0.3em 0; font-size:2em;" id="resultTitle"></h2>
-            <p style="font-size:1.3em; color:#555; margin:0.5em 0;" id="resultMessage"></p>
-            <div style="margin-top:1.5em;">
-                <button onclick="newWordAndReset()" style="padding:0.8em 2em; background:#5b7b94; color:white; border:none; border-radius:8px; cursor:pointer; font-size:1em; font-weight:600;">Try Another Word</button>
-            </div>
-        </div>
+        <div class="loading-row" id="canvasLoading"><div class="spinner"></div> Checking your word...</div>
     </div>
 
-    <audio id="soundCorrect" preload="auto"><source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg"></audio>
-    <audio id="soundReversal" preload="auto"><source src="{{ url_for('static', filename='sounds/tryagain.mp3') }}" type="audio/mpeg"></audio>
-    <audio id="soundError" preload="auto"><source src="{{ url_for('static', filename='sounds/oops.mp3') }}" type="audio/mpeg"></audio>
+    <div class="stars-row flex-center mt-2" id="starProgress" style="display:none;"><span id="starsDisplay"></span></div>
+    <div class="result-box" id="resultBox">
+        <div class="result-emoji" id="resultEmoji"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-message" id="resultMessage"></div>
+        <button class="btn btn-primary" onclick="newWordAndReset()">🔄 Try Another Word</button>
+    </div>
+</div>
 
-    <script>
+<script>
+    // ---------- Word lists (same as upload.html) ----------
     const wordLists = {
-        'easy': ['dog','cat','big','bed','pig','cup','sun','hat','run','box','map','bus','pen','top','pin','bag','log','pot','dig','bug'],
-        'medium': ['baby','blue','brown','queen','power','water','wake','name','duck','bird','play','jump','read','park','ball','down'],
-        'hard': ['bridge','dragon','bubble','purple','window','mirror','number','quarter','dinner','double','pretty','wonder','blanket','problem']
+        easy: { default: ['dog','cat','big','bed','pig','cup','sun','hat','run','box','map','bus','pen','top','pin','bag','log','pot','dig','bug'],
+                animals: ['dog','cat','pig','cow','hen','bat','fox','owl','bee','ant'],
+                food: ['bun','jam','pie','nut','egg','fig','yam','rye','ham','pea'],
+                colors: ['red','tan','blue','pink','lime','teal','plum','rose','navy','gold'] },
+        medium: { default: ['baby','blue','brown','queen','power','water','wake','name','duck','bird','play','jump','read','park','ball','down'],
+                  animals: ['duck','bird','fish','bear','deer','frog','wolf','seal','crab','dove'],
+                  food: ['bread','apple','grape','peach','mango','berry','lemon','olive','prune','dates'],
+                  colors: ['purple','silver','bronze','violet','indigo','maroon','copper','crimson'] },
+        hard: { default: ['bridge','dragon','bubble','purple','window','mirror','number','quarter','dinner','double','pretty','wonder','blanket','problem'],
+                animals: ['rabbit','dragon','puppy','pony','eagle','zebra','whale','tiger','mouse','snail'],
+                food: ['banana','cherry','orange','potato','tomato','carrot','celery','raisin','walnut','almond'],
+                colors: ['magenta','turquoise','lavender','chartreuse','cerulean','vermillion'] }
     };
-    
     let currentLevel = 'easy', currentTheme = '', currentLang = 'english';
     const levelLabels = {'easy':'3 letters','medium':'4-5 letters','hard':'6-8 letters'};
 
     function changeLevel(level) {
         currentLevel = level;
         document.querySelectorAll('.level-selector button').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn' + level.charAt(0).toUpperCase() + level.slice(1)).classList.add('active');
+        document.getElementById(`btn${level.charAt(0).toUpperCase()+level.slice(1)}`).classList.add('active');
         document.getElementById('levelLabel').textContent = levelLabels[level];
         newWord();
     }
-
     function changeTheme() { currentTheme = document.getElementById('themeSelect').value; newWord(); }
-
     function toggleLanguage() {
         currentLang = currentLang === 'english' ? 'malay' : 'english';
         document.getElementById('langBtn').textContent = currentLang === 'english' ? '🇬🇧 English' : '🇲🇾 Malay';
         newWord();
     }
-
     async function fetchNewWord() {
         try {
-            let url = '/api/get_word?level=' + currentLevel;
-            if (currentTheme) url += '&theme=' + currentTheme;
-            if (currentLang === 'malay') url += '&lang=malay';
-            const res = await fetch(url); const data = await res.json();
+            let url = `/api/get_word?level=${currentLevel}`;
+            if(currentTheme) url += `&theme=${currentTheme}`;
+            if(currentLang === 'malay') url += '&lang=malay';
+            const res = await fetch(url);
+            const data = await res.json();
             document.getElementById('wordDisplay').textContent = data.word;
             document.getElementById('expectedWord').value = data.word;
-        } catch (err) {
-            const words = wordLists[currentLevel] || wordLists['easy'];
-            const word = words[Math.floor(Math.random() * words.length)];
+        } catch(err) {
+            const themeWords = wordLists[currentLevel]?.[currentTheme] || wordLists[currentLevel].default;
+            const word = themeWords[Math.floor(Math.random() * themeWords.length)];
             document.getElementById('wordDisplay').textContent = word;
             document.getElementById('expectedWord').value = word;
         }
     }
-
     function newWord() { fetchNewWord(); clearCanvas(); hideResult(); }
-    function newWordAndReset() { newWord(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function newWordAndReset() { newWord(); window.scrollTo({top:0,behavior:'smooth'}); }
     function hideResult() { document.getElementById('resultBox').style.display = 'none'; document.getElementById('starProgress').style.display = 'none'; }
-
     function showResult(emoji, title, message, bgColor, borderColor) {
         const box = document.getElementById('resultBox');
-        box.style.display = 'block'; box.style.background = bgColor; box.style.border = '3px solid ' + borderColor;
+        box.style.display = 'block';
+        box.style.background = bgColor;
+        box.style.border = `3px solid ${borderColor}`;
         document.getElementById('resultEmoji').textContent = emoji;
         document.getElementById('resultTitle').textContent = title;
-        document.getElementById('resultTitle').style.color = borderColor;
         document.getElementById('resultMessage').textContent = message;
-        playSound(title === 'Perfect!' ? 'correct' : (title.includes('Dyslexia') ? 'reversal' : 'error'));
+        if(title === 'Perfect!') playGlobalSound('correct');
+        else if(title === 'Dyslexia Detected') playGlobalSound('reversal');
+        else playGlobalSound('error');
         fetchStars();
-        box.scrollIntoView({ behavior: 'smooth' });
+        box.scrollIntoView({behavior:'smooth'});
     }
-
-    function playSound(type) {
-        const s = {'correct':'soundCorrect','reversal':'soundReversal','error':'soundError'};
-        const el = document.getElementById(s[type]);
-        if (el) { el.currentTime = 0; el.play().catch(()=>{}); }
-    }
-
     async function fetchStars() {
         try {
-            const res = await fetch('/api/user/stats'); const data = await res.json();
-            document.getElementById('starsDisplay').innerHTML = '⭐'.repeat(data.stars) + '☆'.repeat(5 - data.stars);
-            document.getElementById('progressStats').textContent = data.correct_words + '/' + data.total_words + ' correct (' + data.accuracy + '%)';
-            document.getElementById('starProgress').style.display = 'block';
-        } catch (err) {}
+            const res = await fetch('/api/user/stats');
+            const d = await res.json();
+            document.getElementById('starsDisplay').innerHTML = '⭐'.repeat(d.stars) + '☆'.repeat(5-d.stars);
+            document.getElementById('starProgress').style.display = 'flex';
+        } catch(e) {}
     }
-
-    fetchNewWord();
-
-    // Canvas
+    // Canvas drawing logic
     const canvas = document.getElementById('writingCanvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
     const BOX_SIZE = 70, BOX_GAP = 4, TOP_MARGIN = 55;
-
     function drawLetterBoxes() {
-        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,canvas.width,canvas.height);
         const word = document.getElementById('expectedWord').value || 'dog';
         const letterCount = word.length;
-        const totalWidth = letterCount * BOX_SIZE + (letterCount - 1) * BOX_GAP;
-        const startX = (canvas.width - totalWidth) / 2;
-        for (let i = 0; i < letterCount; i++) {
-            const x = startX + i * (BOX_SIZE + BOX_GAP), y = TOP_MARGIN;
+        const totalWidth = letterCount * BOX_SIZE + (letterCount-1)*BOX_GAP;
+        const startX = (canvas.width - totalWidth)/2;
+        for(let i=0;i<letterCount;i++) {
+            const x = startX + i*(BOX_SIZE+BOX_GAP), y = TOP_MARGIN;
             ctx.strokeStyle = '#E0E0E0'; ctx.lineWidth = 0.3; ctx.setLineDash([]);
-            ctx.strokeRect(x, y, BOX_SIZE, BOX_SIZE);
-            ctx.strokeStyle = '#ECECEC'; ctx.lineWidth = 0.2; ctx.setLineDash([3, 5]);
-            ctx.beginPath(); ctx.moveTo(x + 8, y + BOX_SIZE/2); ctx.lineTo(x + BOX_SIZE - 8, y + BOX_SIZE/2); ctx.stroke();
+            ctx.strokeRect(x,y,BOX_SIZE,BOX_SIZE);
+            ctx.strokeStyle = '#ECECEC'; ctx.lineWidth = 0.2; ctx.setLineDash([3,5]);
+            ctx.beginPath(); ctx.moveTo(x+8, y+BOX_SIZE/2); ctx.lineTo(x+BOX_SIZE-8, y+BOX_SIZE/2); ctx.stroke();
         }
         ctx.setLineDash([]); ctx.strokeStyle = '#000000'; ctx.lineWidth = 3; ctx.lineCap = 'round';
     }
-
     function clearCanvas() { drawLetterBoxes(); }
-    function confirmClear() { if (confirm('Clear your writing?')) clearCanvas(); }
+    function confirmClear() { if(confirm('Clear your writing?')) clearCanvas(); }
     drawLetterBoxes();
 
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+        const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
         let cx, cy;
-        if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+        if(e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
         else { cx = e.clientX; cy = e.clientY; }
-        return { x: Math.max(0, Math.min(canvas.width, (cx - rect.left) * sx)), y: Math.max(0, Math.min(canvas.height, (cy - rect.top) * sy)) };
+        return { x: Math.max(0, Math.min(canvas.width, (cx-rect.left)*sx)), y: Math.max(0, Math.min(canvas.height, (cy-rect.top)*sy)) };
     }
-
-    canvas.addEventListener('mousedown', (e) => { drawing = true; const p = getCoords(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('mousemove', (e) => { if (!drawing) return; const p = getCoords(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('mouseup', () => { drawing = false; });
-    canvas.addEventListener('mouseleave', () => { drawing = false; });
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); drawing = true; const p = getCoords(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!drawing) return; const p = getCoords(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener('touchend', () => { drawing = false; });
+    canvas.addEventListener('mousedown', (e) => { drawing=true; const p=getCoords(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('mousemove', (e) => { if(!drawing) return; const p=getCoords(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('mouseup', () => { drawing=false; });
+    canvas.addEventListener('mouseleave', () => { drawing=false; });
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); drawing=true; const p=getCoords(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if(!drawing) return; const p=getCoords(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('touchend', () => { drawing=false; });
 
     async function submitCanvas() {
         document.getElementById('canvasLoading').style.display = 'block';
@@ -229,37 +182,44 @@
         const outCanvas = document.createElement('canvas');
         outCanvas.width = canvas.width; outCanvas.height = canvas.height;
         const outCtx = outCanvas.getContext('2d');
-        outCtx.fillStyle = '#FFFFFF'; outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-        outCtx.drawImage(canvas, 0, 0);
-        const imageData = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+        outCtx.fillStyle = '#FFFFFF'; outCtx.fillRect(0,0,outCanvas.width,outCanvas.height);
+        outCtx.drawImage(canvas,0,0);
+        const imageData = outCtx.getImageData(0,0,outCanvas.width,outCanvas.height);
         const d = imageData.data;
-        for (let i = 0; i < d.length; i += 4) {
-            const brightness = (d[i] + d[i+1] + d[i+2]) / 3;
-            if (brightness < 200) { d[i] = 0; d[i+1] = 0; d[i+2] = 0; }
-            else { d[i] = 255; d[i+1] = 255; d[i+2] = 255; }
+        for(let i=0;i<d.length;i+=4) {
+            const brightness = (d[i]+d[i+1]+d[i+2])/3;
+            if(brightness<200) { d[i]=0; d[i+1]=0; d[i+2]=0; }
+            else { d[i]=255; d[i+1]=255; d[i+2]=255; }
         }
-        outCtx.putImageData(imageData, 0, 0);
+        outCtx.putImageData(imageData,0,0);
         const expectedWord = document.getElementById('expectedWord').value.trim();
         outCanvas.toBlob(async (blob) => {
             const fd = new FormData();
             fd.append('image', blob, 'canvas.png');
             fd.append('expected_word', expectedWord);
             try {
-                const res = await fetch('/predict', { method: 'POST', body: fd });
+                const res = await fetch('/predict', { method:'POST', body:fd });
                 const data = await res.json();
                 document.getElementById('canvasLoading').style.display = 'none';
                 document.getElementById('analyzeCanvasBtn').disabled = false;
-                if (data.error) { showResult('⚠️', 'Oops!', data.error, '#fff8e6', '#f39c12'); return; }
-                if (data.is_correct) showResult('🌟', 'Perfect!', data.fun_feedback, '#e6ffe6', '#27ae60');
-                else if (data.has_dyslexia) showResult('🔍', 'Dyslexia Detected', data.fun_feedback, '#ffe6e6', '#e74c3c');
-                else showResult('📝', 'No Dyslexia', data.fun_feedback, '#fff8e6', '#f39c12');
-            } catch (err) {
+                if(data.error) { showResult('⚠️','Oops!',data.error,'#fff8e6','#f39c12'); return; }
+                if(data.is_correct) {
+                    showResult('🌟','Perfect!',data.fun_feedback,'#e6ffe6','#27ae60');
+                } else if(data.has_dyslexia) {
+                    showResult('🔍','Dyslexia Detected',data.fun_feedback,'#ffe6e6','#e74c3c');
+                } else if(data.result_level === 'Incorrect Word') {
+                    showResult('❌','Incorrect Word',data.fun_feedback,'#fff0e0','#e67e22');
+                } else {
+                    showResult('📝','No Dyslexia',data.fun_feedback,'#fff8e6','#f39c12');
+                }
+            } catch(err) {
                 document.getElementById('canvasLoading').style.display = 'none';
                 document.getElementById('analyzeCanvasBtn').disabled = false;
-                showResult('⚠️', 'Error', 'Network error.', '#ffe6e6', '#e74c3c');
+                showResult('⚠️','Error','Network error.','#ffe6e6','#e74c3c');
             }
         }, 'image/png');
     }
-    </script>
-</body>
-</html>
+    fetchNewWord();
+    fetchStars();
+</script>
+{% endblock %}

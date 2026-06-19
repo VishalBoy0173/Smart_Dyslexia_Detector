@@ -1,0 +1,27 @@
+============================================================
+YOLOv11 MODEL VALIDATION REPORT
+Generated: 2026-06-15 09:00:52
+============================================================
+
+OVERALL PERFORMANCE:
+----------------------------------------
+Precision       : 0.9992 (99.92%)
+Recall          : 0.9988 (99.88%)
+F1 Score        : 0.9990 (99.90%)
+mAP@0.5         : 0.9950 (99.50%)
+mAP@0.5:0.95    : 0.9938 (99.38%)
+
+PER-CLASS PERFORMANCE (mAP@0.5):
+----------------------------------------
+normal       : AP50=0.9950, AP50-95=0.9943
+reversal     : AP50=0.9949, AP50-95=0.9926
+corrected    : AP50=0.9950, AP50-95=0.9944
+
+============================================================
+INTERPRETATION:
+- Precision > 99% : When the model says 'reversal', it is almost always correct.
+- Recall > 99%   : The model finds nearly all actual reversals (very few misses).
+- mAP@0.5 > 99%  : Excellent detection accuracy – bounding boxes are very precise.
+- mAP@0.5:0.95 > 99% : Consistently high accuracy across all IoU thresholds.
+- Perfect balance between classes – no bias.
+============================================================

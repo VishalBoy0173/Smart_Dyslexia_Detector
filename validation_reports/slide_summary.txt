@@ -1,0 +1,37 @@
+
+========================================
+SLIDE CONTENT FOR PRESENTATION
+========================================
+
+MODEL PERFORMANCE SUMMARY:
+
+- Precision: 99.92%  
+  -> When the model flags a letter as 'reversal', it is correct 99.92% of the time.
+
+- Recall: 99.88%  
+  -> The model detects 99.88% of all actual reversal letters (very few missed).
+
+- F1 Score: 99.90%  
+  -> Excellent balance between precision and recall.
+
+- mAP@0.5: 99.50%  
+  -> The model's bounding boxes are highly accurate at the standard IoU threshold.
+
+- mAP@0.5:0.95: 99.38%  
+  -> Consistently high accuracy even under strict IoU requirements.
+
+PER-CLASS PERFORMANCE (mAP@0.5):
+    Class     AP50  AP50-95
+   normal 0.994951 0.994342
+ reversal 0.994927 0.992627
+corrected 0.994987 0.994379
+
+INTERPRETATION FOR DYSLEXIA DETECTION:
+- The model distinguishes 'normal', 'reversal', and 'corrected' with near-perfect accuracy.
+- 'reversal' class AP@0.5 = 99.49% – extremely reliable.
+- Confusion matrix (see image) shows very few misclassifications between classes.
+- These results mean the system can be confidently used for screening children's handwriting.
+
+Conclusion: The YOLOv11 model is production-ready and highly accurate for real-time dyslexia indicator detection.
+
+========================================

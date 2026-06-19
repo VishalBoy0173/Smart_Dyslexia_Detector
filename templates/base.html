@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>{% block title %}DyslexiAI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">🦉 DyslexiAI</div>
+                <div class="brand-sub">Smart Detector</div>
+            </div>
+            <div class="sidebar-user">
+                <div class="sidebar-avatar">{{ session.get('username', '?')[0] | upper }}</div>
+                <div>
+                    <div class="sidebar-username">{{ session.get('username') }}</div>
+                    <div class="sidebar-role">Student</div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Main</div>
+                <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
+                <a href="{{ url_for('upload_page') }}" class="nav-item"><span class="nav-icon">📤</span> Upload Word</a>
+                <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
+                <div class="nav-section-label">Practice</div>
+                <a href="{{ url_for('practice_page') }}" class="nav-item"><span class="nav-icon">🎮</span> Games</a>
+                <a href="{{ url_for('letter_guide') }}" class="nav-item"><span class="nav-icon">📝</span> Letter Guide</a>
+                <a href="{{ url_for('phrase_page') }}" class="nav-item"><span class="nav-icon">📄</span> Phrases</a>
+                <div class="nav-section-label">Activity</div>
+                <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
+                <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('about_page') }}">ℹ️ About</a>
+                <a href="{{ url_for('logout') }}">🚪 Logout</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="topbar">
+                <div class="topbar-title">{% block topbar_title %}{% endblock %}</div>
+            </div>
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <audio id="soundCorrect" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="soundReversal" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/tryagain.mp3') }}" type="audio/mpeg">
+    </audio>
+    <audio id="soundError" preload="auto">
+        <source src="{{ url_for('static', filename='sounds/oops.mp3') }}" type="audio/mpeg">
+    </audio>
+
+    <script>
+        function playGlobalSound(type) {
+            const map = { correct:'soundCorrect', reversal:'soundReversal', error:'soundError' };
+            const el = document.getElementById(map[type]);
+            if(el) { el.currentTime = 0; el.play().catch(e=>console.log(e)); }
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,77 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - DyslexiAI</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="app-layout">
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <div class="brand-logo">🦉 DyslexiAI</div>
-                <div class="brand-sub">Smart Detector</div>
-            </div>
-            <div class="sidebar-user">
-                <div class="sidebar-avatar">{{ username[0] | upper if username else '?' }}</div>
-                <div>
-                    <div class="sidebar-username">{{ username }}</div>
-                    <div class="sidebar-role">Student</div>
-                </div>
-            </div>
-            <nav class="sidebar-nav">
-                <div class="nav-section-label">Main</div>
-                <a href="{{ url_for('dashboard') }}" class="nav-item active"><span class="nav-icon">📊</span> Dashboard</a>
-                <a href="{{ url_for('upload_page') }}" class="nav-item"><span class="nav-icon">📤</span> Upload Word</a>
-                <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
-                <div class="nav-section-label">Practice</div>
-                <a href="{{ url_for('practice_page') }}" class="nav-item"><span class="nav-icon">🎮</span> Games</a>
-                <a href="{{ url_for('letter_guide') }}" class="nav-item"><span class="nav-icon">📝</span> Letter Guide</a>
-                <a href="{{ url_for('phrase_page') }}" class="nav-item"><span class="nav-icon">📄</span> Phrases</a>
-                <div class="nav-section-label">Activity</div>
-                <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
-                <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="{{ url_for('about_page') }}">ℹ️ About</a>
-                <a href="{{ url_for('logout') }}">🚪 Logout</a>
-            </div>
-        </aside>
+{% extends "base.html" %}
 
-        <main class="main-content">
-            <div class="topbar"><div class="topbar-title">📊 <span>Dashboard</span></div></div>
-            <div class="page-content">
-                <div class="page-header">
-                    <h1>Welcome back, {{ username }}! 👋</h1>
-                    <p>Choose how you want to practice your writing today.</p>
-                </div>
-                <div class="grid-3">
-                    <a href="{{ url_for('upload_page') }}" style="text-decoration:none;">
-                        <div class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">📤</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Upload Word</h3><p class="text-muted">Write on paper and upload a photo for analysis.</p></div>
-                    </a>
-                    <a href="{{ url_for('canvas_page') }}" style="text-decoration:none;">
-                        <div class="card card-clickable card-accent-green"><div style="font-size:2.5rem;">✍️</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Canvas Writing</h3><p class="text-muted">Write directly on screen and get instant feedback.</p></div>
-                    </a>
-                    <a href="{{ url_for('practice_page') }}" style="text-decoration:none;">
-                        <div class="card card-clickable card-accent-amber"><div style="font-size:2.5rem;">🎮</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Practice Games</h3><p class="text-muted">Fun games to improve letter recognition.</p></div>
-                    </a>
-                </div>
-                <div class="grid-3 mt-3">
-                    <div class="stat-card"><div class="stat-number" id="quickTotal">—</div><div class="stat-label">Words Practiced</div></div>
-                    <div class="stat-card"><div class="stat-number green" id="quickCorrect">—</div><div class="stat-label">Correct Words</div></div>
-                    <div class="stat-card"><div class="stat-number amber" id="quickAccuracy">—</div><div class="stat-label">Accuracy</div></div>
-                </div>
-                <div class="disclaimer mt-3">⚠️ <strong>Disclaimer:</strong> This is a screening support tool, not a medical diagnosis. Please consult a qualified specialist for a full evaluation.</div>
-            </div>
-        </main>
-    </div>
-    <script>
+{% block title %}Dashboard - DyslexiAI{% endblock %}
+{% block topbar_title %}📊 <span>Dashboard</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Welcome back, {{ session.username }}! 👋</h1>
+    <p>Choose how you want to practice your writing today.</p>
+</div>
+
+<div class="grid-3">
+    <a href="{{ url_for('upload_page') }}" style="text-decoration:none;">
+        <div class="card card-clickable card-accent-blue">
+            <div style="font-size:2.5rem;">📤</div>
+            <h3>Upload Word</h3>
+            <p class="text-muted">Write on paper and upload a photo for analysis.</p>
+        </div>
+    </a>
+    <a href="{{ url_for('canvas_page') }}" style="text-decoration:none;">
+        <div class="card card-clickable card-accent-green">
+            <div style="font-size:2.5rem;">✍️</div>
+            <h3>Canvas Writing</h3>
+            <p class="text-muted">Write directly on screen and get instant feedback.</p>
+        </div>
+    </a>
+    <a href="{{ url_for('practice_page') }}" style="text-decoration:none;">
+        <div class="card card-clickable card-accent-amber">
+            <div style="font-size:2.5rem;">🎮</div>
+            <h3>Practice Games</h3>
+            <p class="text-muted">Fun games to improve letter recognition.</p>
+        </div>
+    </a>
+</div>
+
+<div class="grid-3 mt-3">
+    <div class="stat-card"><div class="stat-number" id="quickTotal">—</div><div class="stat-label">Words Practiced</div></div>
+    <div class="stat-card"><div class="stat-number green" id="quickCorrect">—</div><div class="stat-label">Correct Words</div></div>
+    <div class="stat-card"><div class="stat-number amber" id="quickAccuracy">—</div><div class="stat-label">Accuracy</div></div>
+</div>
+
+<div class="disclaimer mt-3">⚠️ <strong>Disclaimer:</strong> This is a screening support tool, not a medical diagnosis. Please consult a qualified specialist for a full evaluation.</div>
+
+<script>
     fetch('/api/user/stats').then(r=>r.json()).then(d=>{
-        document.getElementById('quickTotal').textContent=d.total_words||0;
-        document.getElementById('quickCorrect').textContent=d.correct_words||0;
-        document.getElementById('quickAccuracy').textContent=(d.accuracy||0)+'%';
+        document.getElementById('quickTotal').textContent = d.total_words || 0;
+        document.getElementById('quickCorrect').textContent = d.correct_words || 0;
+        document.getElementById('quickAccuracy').textContent = (d.accuracy || 0) + '%';
     });
-    </script>
-</body>
-</html>
+</script>
+{% endblock %}

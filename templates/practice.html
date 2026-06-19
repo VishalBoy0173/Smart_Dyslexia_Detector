@@ -1,39 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Games - DyslexiAI</title><link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"></head>
-<body>
-<div class="app-layout">
-<aside class="sidebar">
-    <div class="sidebar-brand"><div class="brand-logo">🦉 DyslexiAI</div><div class="brand-sub">Smart Detector</div></div>
-    <div class="sidebar-user"><div class="sidebar-avatar">{{ session.get('username','?')[0]|upper }}</div><div><div class="sidebar-username">{{ session.get('username') }}</div><div class="sidebar-role">Student</div></div></div>
-    <nav class="sidebar-nav">
-        <div class="nav-section-label">Main</div>
-        <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
-        <a href="{{ url_for('upload_page') }}" class="nav-item"><span class="nav-icon">📤</span> Upload Word</a>
-        <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
-        <div class="nav-section-label">Practice</div>
-        <a href="{{ url_for('practice_page') }}" class="nav-item active"><span class="nav-icon">🎮</span> Games</a>
-        <a href="{{ url_for('letter_guide') }}" class="nav-item"><span class="nav-icon">📝</span> Letter Guide</a>
-        <div class="nav-section-label">Activity</div>
-        <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
-        <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
-    </nav>
-    <div class="sidebar-footer"><a href="{{ url_for('about_page') }}">ℹ️ About</a><a href="{{ url_for('logout') }}">🚪 Logout</a></div>
-</aside>
-<main class="main-content">
-<div class="topbar"><div class="topbar-title">🎮 <span>Practice Games</span></div></div>
-<div class="page-content">
+{% extends "base.html" %}
+{% block title %}Practice Games - DyslexiAI{% endblock %}
+{% block topbar_title %}🎮 <span>Practice Games</span>{% endblock %}
+{% block content %}
 <div class="page-header"><h1>Practice Games 🎮</h1><p>Fun activities to improve your letter recognition skills.</p></div>
 <div class="grid-3">
-    <a href="{{ url_for('game_reversal') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🔍</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Letter Detective</h3><p class="text-muted">Spot reversed letters in a fun quiz.</p></div></a>
-    <a href="{{ url_for('game_bingo') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">🎯</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Word Bingo</h3><p class="text-muted">Match words on your bingo card.</p></div></a>
-    <a href="{{ url_for('game_lotto') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-green"><div style="font-size:2.5rem;">🎟️</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Spelling Lotto</h3><p class="text-muted">Match word cards to picture boards.</p></div></a>
-    <a href="{{ url_for('game_words') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-amber"><div style="font-size:2.5rem;">🧩</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Word Builder</h3><p class="text-muted">Build words with correct letter order.</p></div></a>
-    <a href="{{ url_for('game_quiz') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">📝</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Spelling Bee</h3><p class="text-muted">Type the correct spelling of words.</p></div></a>
-    <a href="{{ url_for('game_memory') }}" style="text-decoration:none;"><div class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🧠</div><h3 style="margin:0.75rem 0 0.35rem;font-weight:800;">Memory Match</h3><p class="text-muted">Find matching word pairs.</p></div></a>
+    <a href="{{ url_for('game_reversal') }}" class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🔍</div><h3>Letter Detective</h3><p class="text-muted">Spot reversed letters.</p></a>
+    <a href="{{ url_for('game_bingo') }}" class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">🎯</div><h3>Word Bingo</h3><p class="text-muted">Match words on your bingo card.</p></a>
+    <a href="{{ url_for('game_lotto') }}" class="card card-clickable card-accent-green"><div style="font-size:2.5rem;">🎟️</div><h3>Spelling Lotto</h3><p class="text-muted">Match word cards to picture boards.</p></a>
+    <a href="{{ url_for('game_words') }}" class="card card-clickable card-accent-amber"><div style="font-size:2.5rem;">🧩</div><h3>Word Builder</h3><p class="text-muted">Build words with correct order.</p></a>
+    <a href="{{ url_for('game_quiz') }}" class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">📝</div><h3>Spelling Bee</h3><p class="text-muted">Type the correct spelling.</p></a>
+    <a href="{{ url_for('game_memory') }}" class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🧠</div><h3>Memory Match</h3><p class="text-muted">Find matching word pairs.</p></a>
 </div>
-</div>
-</main>
-</div>
-</body>
-</html>
+{% endblock %}

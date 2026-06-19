@@ -1,0 +1,32 @@
+============================================================
+YOLO MODEL ANALYSIS REPORT
+============================================================
+
+Generated: 2026-06-14 16:13:12.864092
+
+MODEL INFORMATION
+------------------------------------------------------------
+Model Path: C:\Users\visha\FYP\smartDyslexiaDetector_v2\model\best.pt
+Model Size: 5.22 MB
+Task: detect
+Number of Classes: 3
+
+CLASSES
+------------------------------------------------------------
+0: normal
+1: reversal
+2: corrected
+
+PERFORMANCE METRICS
+------------------------------------------------------------
+Precision: 0.9992
+Recall: 0.9988
+F1 Score: 0.9990
+mAP@50: 0.9950
+mAP@50-95: 0.9938
+
+PER CLASS PERFORMANCE
+------------------------------------------------------------
+normal: mAP50=0.9950, mAP50-95=0.9943
+reversal: mAP50=0.9949, mAP50-95=0.9926
+corrected: mAP50=0.9950, mAP50-95=0.9944

@@ -96,45 +96,45 @@ OCR_CONFUSIONS = {
 
 THEMED_WORDS = {
     'animals': {
-        'easy': ['dog', 'cat', 'pig', 'cow', 'hen', 'bat', 'fox', 'owl', 'bee', 'ant'],
-        'medium': ['duck', 'bird', 'fish', 'bear', 'deer', 'frog', 'wolf', 'seal', 'crab', 'dove'],
-        'hard': ['rabbit', 'dragon', 'puppy', 'pony', 'eagle', 'zebra', 'whale', 'tiger', 'mouse', 'snail']
+        'easy': ['duck', 'pig', 'bird', 'bear', 'deer', 'bull', 'pony', 'frog', 'eel', 'bee'],
+        'medium': ['badger', 'dolphin', 'penguin', 'rabbit', 'butterfly', 'ladybug', 'woodpecker', 'hummingbird'],
+        'hard': ['dinosaur', 'pterodactyl', 'panda', 'peacock', 'butterflyfish', 'dragonfly']
     },
     'food': {
-        'easy': ['bun', 'jam', 'pie', 'nut', 'egg', 'fig', 'yam', 'rye', 'ham', 'pea'],
-        'medium': ['bread', 'apple', 'grape', 'peach', 'mango', 'berry', 'lemon', 'olive', 'prune', 'dates'],
-        'hard': ['banana', 'cherry', 'orange', 'potato', 'tomato', 'carrot', 'celery', 'raisin', 'walnut', 'almond']
+        'easy': ['bun', 'jam', 'pie', 'egg', 'milk', 'peas', 'beans', 'bread', 'butter', 'pudding'],
+        'medium': ['burger', 'pancake', 'waffle', 'donut', 'pumpkin', 'broccoli', 'cucumber', 'radish'],
+        'hard': ['pineapple', 'blueberry', 'raspberry', 'blackberry', 'pomegranate', 'cauliflower']
     },
     'colors': {
-        'easy': ['red', 'tan', 'sky', 'ash', 'oak', 'ice', 'ink', 'sun', 'mud', 'fog'],
-        'medium': ['blue', 'gold', 'pink', 'navy', 'rose', 'lime', 'teal', 'plum', 'coral', 'amber'],
-        'hard': ['purple', 'silver', 'bronze', 'violet', 'indigo', 'maroon', 'copper', 'crimson', 'magenta']
+        'easy': ['red', 'blue', 'pink', 'brown', 'gold', 'plum', 'lime', 'mint', 'beige'],
+        'medium': ['purple', 'bronze', 'silver', 'copper', 'maroon', 'crimson', 'indigo', 'violet'],
+        'hard': ['turquoise', 'magenta', 'lavender', 'chartreuse', 'cerulean', 'vermillion']
     },
     'actions': {
-        'easy': ['run', 'hop', 'dig', 'jog', 'mix', 'fix', 'row', 'bow', 'tip', 'tap'],
-        'medium': ['jump', 'play', 'read', 'swim', 'sing', 'draw', 'bake', 'walk', 'ride', 'cook'],
-        'hard': ['dance', 'climb', 'paint', 'build', 'write', 'dream', 'laugh', 'explore', 'garden', 'travel']
+        'easy': ['run', 'jump', 'skip', 'dip', 'bob', 'dab', 'mop', 'dig', 'pop', 'tap'],
+        'medium': ['bounce', 'dangle', 'wiggle', 'paddle', 'splash', 'climb', 'dive', 'bury'],
+        'hard': ['balance', 'dribble', 'compute', 'disappear', 'appreciate', 'demonstrate']
     },
     'nature': {
-        'easy': ['sun', 'sky', 'mud', 'oak', 'fog', 'dew', 'bud', 'log', 'pod', 'gem'],
-        'medium': ['cloud', 'river', 'stone', 'flame', 'ocean', 'storm', 'field', 'bloom', 'frost', 'coral'],
-        'hard': ['forest', 'garden', 'desert', 'island', 'jungle', 'canyon', 'meadow', 'planet', 'thunder', 'glacier']
+        'easy': ['sun', 'mud', 'dew', 'bud', 'pod', 'bush', 'pond', 'wood', 'peak', 'bark'],
+        'medium': ['branch', 'pebble', 'boulder', 'mountain', 'desert', 'river', 'waterfall', 'canyon'],
+        'hard': ['volcano', 'earthquake', 'hurricane', 'tornado', 'tsunami', 'avalanche']
     }
 }
 
 DEFAULT_WORDS = {
-    'easy': ['dog', 'cat', 'big', 'bed', 'pig', 'cup', 'sun', 'hat', 'run', 'box',
-             'map', 'bus', 'pen', 'top', 'pin', 'bag', 'log', 'pot', 'dig', 'bug'],
-    'medium': ['baby', 'blue', 'brown', 'queen', 'power', 'water', 'wake', 'name',
-               'duck', 'bird', 'play', 'jump', 'read', 'park', 'ball', 'down'],
-    'hard': ['bridge', 'dragon', 'bubble', 'purple', 'window', 'mirror', 'number',
-             'quarter', 'dinner', 'double', 'pretty', 'wonder', 'blanket', 'problem']
+    'easy': ['bed', 'big', 'bad', 'dad', 'dab', 'bun', 'bud', 'bug', 'dug', 'pub', 
+             'mud', 'sun', 'bus', 'cup', 'pup', 'sub'],
+    'medium': ['bird', 'brown', 'blue', 'black', 'bread', 'dirty', 'puppy', 'bunny',
+               'mummy', 'daddy', 'pond', 'under', 'bubble', 'purple', 'dragon'],
+    'hard': ['bridge', 'butterfly', 'dolphin', 'penguin', 'mountain', 'umbrella',
+             'bedroom', 'cupboard', 'upstairs', 'downstairs', 'dinosaur', 'backpack']
 }
 
 MALAY_WORDS = {
-    'easy': ['buku', 'bapa', 'daya', 'budi', 'padi', 'guna', 'dana', 'buka', 'pura', 'diri'],
-    'medium': ['badan', 'bulat', 'pukul', 'dunia', 'gulai', 'buruk', 'putih', 'dalam'],
-    'hard': ['bangunan', 'pemerhati', 'dermawan', 'budiman', 'pertama']
+    'easy': ['buku', 'bapa', 'dua', 'dapur', 'padi', 'mata', 'budi', 'pura', 'diri', 'muka'],
+    'medium': ['badan', 'bulat', 'pukul', 'dunia', 'bumi', 'buruk', 'putih', 'dalam', 'malam', 'pagi'],
+    'hard': ['bangunan', 'pemerhati', 'dermawan', 'budiman', 'pertama', 'berdiri', 'membaca', 'mendengar']
 }
 
 LETTER_FORMATION = {
@@ -364,7 +364,7 @@ def classify_letters_with_yolo(word_img, expected_word):
         print("❌ YOLO model not loaded — cannot classify letters")
         return [], [], []
 
-    letters_found = segment_letters(word_img)
+    letters_found = segment_letters_guaranteed(word_img, expected_word)
     expected_chars = list(expected_word.lower())
 
     print(f"      Segments found: {len(letters_found)} | Expected letters: {len(expected_chars)}")
@@ -437,20 +437,19 @@ def classify_letters_with_yolo(word_img, expected_word):
 
         # Flag reversal and corrected as dyslexia signals
         if detected_class == CLASS_REVERSAL and confidence > 0.25:
-            # Try to name the reversal partner for helpful feedback
             reversed_to = None
             if expected_char in REVERSAL_PAIRS:
                 reversed_to = REVERSAL_PAIRS[expected_char][0]
 
             detail['type'] = 'reversal'
             detail['reversed_to'] = reversed_to
-            reversals.append(detail)
+            reversals.append(detail)                       # only reversals added here
             print(f"         ⚠️ REVERSAL detected at position {idx+1}")
 
         elif detected_class == CLASS_CORRECTED and confidence > 0.25:
             detail['type'] = 'corrected'
-            reversals.append(detail)
-            print(f"         ⚠️ CORRECTED letter detected at position {idx+1}")
+            # DO NOT append to reversals – correction is not a dyslexia indicator
+            print(f"         ℹ️ CORRECTED letter at position {idx+1} (not counted as dyslexia)")
 
         else:
             detail['type'] = 'normal'
@@ -459,21 +458,93 @@ def classify_letters_with_yolo(word_img, expected_word):
 
     return letters_found, reversals, letter_details
 
+# ═══════════════ GUARANTEED SEGMENTATION (always returns expected number of boxes) ═══════════════
+
+def segment_letters_guaranteed(word_img, expected_word):
+    """
+    Always returns a list of bounding boxes with length = len(expected_word).
+    Tries contour detection first; if it finds at least 60% of expected letters, uses it.
+    Otherwise falls back to equal‑width splitting (guaranteed).
+    """
+    expected_len = len(expected_word)
+    h, w = word_img.shape[:2]
+    
+    # Try contour detection
+    boxes = _segment_letters_contour(word_img)
+    if len(boxes) >= expected_len * 0.6:
+        print(f"      Segmentation: contour → {len(boxes)} boxes")
+        # Trim if too many (due to broken letters)
+        if len(boxes) > expected_len:
+            boxes = boxes[:expected_len]
+        return boxes
+    
+    # Fallback: equal‑width split (guaranteed to produce exactly expected_len boxes)
+    piece_w = w // expected_len
+    boxes = []
+    for i in range(expected_len):
+        x_start = i * piece_w
+        # Small overlap to avoid cutting letters
+        x_start = max(0, x_start - 2)
+        w_adj = min(piece_w + 4, w - x_start)
+        boxes.append({'bbox': (x_start, 0, w_adj, h)})
+    print(f"      Segmentation: forced equal split → {len(boxes)} boxes")
+    return boxes
+
+def _segment_letters_contour(word_img):
+    """Same contour‑based function you already have – keep as is."""
+    gray = cv2.cvtColor(word_img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+
+    candidates = []
+    # Otsu
+    _, binary1 = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if np.mean(binary1) > 127:
+        binary1 = cv2.bitwise_not(binary1)
+    c1, _ = cv2.findContours(binary1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    candidates.append(c1)
+    # Adaptive
+    binary2 = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                    cv2.THRESH_BINARY_INV, 11, 2)
+    c2, _ = cv2.findContours(binary2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    candidates.append(c2)
+    # Fixed
+    _, binary3 = cv2.threshold(enhanced, 100, 255, cv2.THRESH_BINARY_INV)
+    c3, _ = cv2.findContours(binary3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    candidates.append(c3)
+
+    best_boxes = []
+    best_count = 0
+    for contours in candidates:
+        boxes = []
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w > 4 and h > 6 and w < 150 and h < 150:
+                aspect = w / h if h > 0 else 0
+                if 0.1 < aspect < 3.0:
+                    boxes.append((x, y, w, h))
+        if len(boxes) > best_count:
+            best_count = len(boxes)
+            best_boxes = sorted(boxes, key=lambda b: b[0])
+    return [{'bbox': box} for box in best_boxes]
+
 
 # ═══════════════ MAIN DETECTION FUNCTION ═══════════════
 
-def analyze_single_word(image_path, expected_word):
-    """
-    Full detection pipeline:
+def is_only_reversal_difference(written, expected):
+    """Return True if written differs from expected only by reversal pairs (b/d, p/q, m/w, n/u)."""
+    if len(written) != len(expected):
+        return False
+    reversal_map = {'b':'d', 'd':'b', 'p':'q', 'q':'p', 'm':'w', 'w':'m', 'n':'u', 'u':'n'}
+    for wc, ec in zip(written, expected):
+        if wc != ec:
+            if reversal_map.get(wc) != ec and reversal_map.get(ec) != wc:
+                return False
+    return True
 
-      1. Load and preprocess image
-      2. OCR  → identify what word the child wrote (identity check only)
-      3. YOLO → classify each letter visually as normal/reversal/corrected
-                 *** THIS is the dyslexia detection — not OCR string comparison ***
-      4. Combine:
-           - If the word is completely wrong (OCR similarity too low) → Incorrect Word
-           - Otherwise → YOLO classification determines dyslexia result
-    """
+
+def analyze_single_word(image_path, expected_word):
     try:
         original_img = cv2.imread(image_path)
         if original_img is None:
@@ -492,86 +563,36 @@ def analyze_single_word(image_path, expected_word):
 
         # Handle RGBA transparency
         if len(original_img.shape) == 3 and original_img.shape[2] == 4:
-            white_bg = np.ones(
-                (original_img.shape[0], original_img.shape[1], 3), dtype=np.uint8
-            ) * 255
+            white_bg = np.ones((original_img.shape[0], original_img.shape[1], 3), dtype=np.uint8) * 255
             alpha = original_img[:, :, 3] / 255.0
             for c in range(3):
-                white_bg[:, :, c] = (
-                    original_img[:, :, c] * alpha + white_bg[:, :, c] * (1 - alpha)
-                )
+                white_bg[:, :, c] = (original_img[:, :, c] * alpha + white_bg[:, :, c] * (1 - alpha))
             original_img = white_bg
 
-        # Resize to workable dimensions
+        # Resize
         h, w = original_img.shape[:2]
         if max(h, w) > 1000:
             scale = 800 / max(h, w)
-            original_img = cv2.resize(
-                original_img,
-                (int(w * scale), int(h * scale)),
-                interpolation=cv2.INTER_CUBIC
-            )
+            original_img = cv2.resize(original_img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
         if max(h, w) < 100:
             scale = 400 / max(h, w)
-            original_img = cv2.resize(
-                original_img,
-                (int(w * scale), int(h * scale)),
-                interpolation=cv2.INTER_CUBIC
-            )
+            original_img = cv2.resize(original_img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
 
         expected_word = expected_word.lower().strip()
         print(f"\n{'='*60}")
         print(f"🔍 WORD: '{expected_word}'")
         print(f"{'='*60}")
 
-        # ── STEP 1: OCR — word identity only ─────────────────────────
-        # We ask: "did the child write the right word at all?"
-        # We do NOT use OCR to detect reversals.
+        # ── OCR (only for reference, not for early decision) ──
         written_word, ocr_confidence = ocr_read_raw(original_img)
-        ocr_similarity = SequenceMatcher(
-            None, written_word or '', expected_word
-        ).ratio() if written_word else 0.0
+        ocr_similarity = SequenceMatcher(None, written_word or '', expected_word).ratio() if written_word else 0.0
+        print(f"   OCR result: '{written_word}' (conf: {ocr_confidence:.0f}%, similarity: {ocr_similarity:.2f})")
 
-        print(f"   OCR similarity to expected: {ocr_similarity:.2f}")
-
-        # If OCR reads something completely different, the child wrote the wrong word.
-        # Only flag this when OCR itself is reasonably confident (>=30%)
-        # so we don't penalise OCR failures as wrong words.
-        word_is_wrong = (
-            written_word is not None
-            and ocr_confidence >= 30
-            and ocr_similarity < 0.4
-        )
-
-        if word_is_wrong:
-            print(f"   ❌ Wrong word written: OCR='{written_word}', expected='{expected_word}'")
-            return {
-                'expected_word': expected_word,
-                'written_word': written_word,
-                'is_correct': False,
-                'has_dyslexia': False,
-                'dyslexia_confidence': 0,
-                'reversal_details': [],
-                'letter_details': [],
-                'fun_feedback': (
-                    f'🤔 I read "{written_word}" but the word was "{expected_word}". '
-                    f'Try writing it again!'
-                ),
-                'method': 'ocr_identity',
-                'result_level': 'Incorrect Word'
-            }
-
-        # ── STEP 2: YOLO — primary dyslexia detection ─────────────────
-        # YOLO visually examines each letter crop and classifies it.
-        # This runs on EVERY submission regardless of OCR result.
+        # ── YOLO (always runs) ─────────────────────────────────
         print("🧠 YOLO visual letter classification (primary detector)...")
-        letters_found, reversals, letter_details = classify_letters_with_yolo(
-            original_img, expected_word
-        )
+        letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word)
 
-        # ── STEP 3: Handle segmentation failures ──────────────────────
         if not letters_found:
-            # No letters detected at all — image quality issue
             return {
                 'expected_word': expected_word,
                 'written_word': written_word or '(unreadable)',
@@ -586,9 +607,7 @@ def analyze_single_word(image_path, expected_word):
             }
 
         count_ratio = len(letters_found) / max(len(expected_word), 1)
-
         if count_ratio < 0.4:
-            # Fewer than 40% of expected letters found — image too unclear
             return {
                 'expected_word': expected_word,
                 'written_word': written_word or '(partial)',
@@ -597,65 +616,46 @@ def analyze_single_word(image_path, expected_word):
                 'dyslexia_confidence': 0,
                 'reversal_details': [],
                 'letter_details': letter_details,
-                'fun_feedback': (
-                    f'🤔 I only see {len(letters_found)} of {len(expected_word)} letters. '
-                    f'Write each letter clearly with small gaps!'
-                ),
+                'fun_feedback': f'🤔 I only see {len(letters_found)} of {len(expected_word)} letters. Write each letter clearly with small gaps!',
                 'method': 'yolo_partial',
                 'result_level': 'Cannot Read Clearly'
             }
 
-        # ── STEP 4: Build result from YOLO classification ─────────────
+        # ── NEW: Decision logic – YOLO reversals take priority ──
         has_dyslexia = len(reversals) > 0
         total_letters_analysed = len(letter_details)
         dyslexia_count = len(reversals)
+        dyslexia_confidence = round((dyslexia_count / max(total_letters_analysed, 1)) * 100, 1)
 
-        # Dyslexia confidence = proportion of letters flagged by YOLO
-        dyslexia_confidence = round(
-            (dyslexia_count / max(total_letters_analysed, 1)) * 100, 1
-        )
+        if has_dyslexia:
+            # YOLO found reversals → Dyslexia Detected
+            reversal_letters = [r['expected'] for r in reversals if r.get('type') == 'reversal']
+            fun_feedback = random.choice([
+                f'🔍 The letter "{reversal_letters[0]}" looks reversed. Let\'s practice!',
+                f'🔄 I spotted reversed letters – keep working on it!'
+            ]) if reversal_letters else '🔍 Reversal patterns detected.'
+            result_level = 'Dyslexia Detected'
+            is_correct = False
+        else:
+            # No reversals – now check if the word is wrong or correct
+            if written_word and written_word != expected_word:
+                fun_feedback = f"I read '{written_word}' but the word was '{expected_word}'. Please write the correct word."
+                result_level = 'Incorrect Word'
+                is_correct = False
+            else:
+                fun_feedback = random.choice([
+                    '🌟 All letters look correct!',
+                    '⭐ Great writing — no reversals found!'
+                ])
+                result_level = 'No Dyslexia'
+                is_correct = True
 
         print(f"\n📊 YOLO Summary:")
         print(f"   Letters analysed : {total_letters_analysed}")
-        print(f"   Reversals/Corrected: {dyslexia_count}")
+        print(f"   Reversals found  : {dyslexia_count}")
         print(f"   Dyslexia confidence: {dyslexia_confidence}%")
-        print(f"   Result: {'Dyslexia Detected' if has_dyslexia else 'No Dyslexia'}")
+        print(f"   Result: {result_level}")
         print(f"{'='*60}\n")
-
-        if has_dyslexia:
-            # Build specific feedback from YOLO's findings
-            reversal_letters = [
-                r['expected'] for r in reversals if r.get('type') == 'reversal'
-            ]
-            corrected_letters = [
-                r['expected'] for r in reversals if r.get('type') == 'corrected'
-            ]
-
-            if reversal_letters:
-                fun_feedback = random.choice([
-                    f'🔍 The letter "{reversal_letters[0]}" looks reversed. Let\'s practice!',
-                    f'🔄 I spotted a reversed letter at position {reversals[0]["position"]}!',
-                    f'💪 Some letters got flipped — that\'s okay, let\'s fix it!',
-                    f'📝 Remember which way "{reversal_letters[0]}" should face!',
-                ])
-            else:
-                fun_feedback = random.choice([
-                    '✏️ I noticed a corrected letter — good effort trying again!',
-                    '🔍 I can see you fixed a letter. Keep practising!',
-                ])
-            result_level = 'Dyslexia Detected'
-
-        else:
-            fun_feedback = random.choice([
-                '🌟 All letters look correct!',
-                '⭐ Great writing — no reversals found!',
-                '✅ YOLO checked every letter and they all look good!',
-                '🏆 Perfect letter formation!',
-            ])
-            result_level = 'No Dyslexia'
-
-        # is_correct: word written correctly AND no dyslexia signals
-        is_correct = (not has_dyslexia) and (ocr_similarity >= 0.6 or not written_word)
 
         return {
             'expected_word': expected_word,
@@ -663,8 +663,8 @@ def analyze_single_word(image_path, expected_word):
             'is_correct': is_correct,
             'has_dyslexia': has_dyslexia,
             'dyslexia_confidence': dyslexia_confidence,
-            'reversal_details': reversals,          # flagged letters (reversal/corrected)
-            'letter_details': letter_details,        # full per-letter breakdown
+            'reversal_details': reversals,
+            'letter_details': letter_details,
             'total_letters': total_letters_analysed,
             'dyslexia_count': dyslexia_count,
             'fun_feedback': fun_feedback,
@@ -677,7 +677,6 @@ def analyze_single_word(image_path, expected_word):
         import traceback
         traceback.print_exc()
         return {'error': str(e)}
-
 
 # ═══════════════ ROUTES ═══════════════
 

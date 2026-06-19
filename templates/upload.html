@@ -322,75 +322,71 @@
         hideResult();
     }
 
-    async function submitUpload() {
-        if (!selectedFile) {
-            alert('Please select an image first!');
+async function submitUpload() {
+    if (!selectedFile) {
+        alert('Please select an image first!');
+        return;
+    }
+    
+    const expectedWord = document.getElementById('expectedWord').value.trim();
+    if (!expectedWord) {
+        alert('No word selected! Please refresh the page.');
+        return;
+    }
+    
+    const loadingDiv = document.getElementById('loading');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    loadingDiv.classList.add('show');
+    analyzeBtn.disabled = true;
+    hideResult();
+    
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+    formData.append('expected_word', expectedWord);
+    
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const response = await fetch('/predict', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        
+        loadingDiv.classList.remove('show');
+        analyzeBtn.disabled = false;
+        
+        if (data.error) {
+            showResult('⚠️', 'Oops!', data.error, 'unclear');
             return;
         }
         
-        const expectedWord = document.getElementById('expectedWord').value.trim();
-        if (!expectedWord) {
-            alert('No word selected! Please refresh the page.');
-            return;
+        if (data.is_correct) {
+            showResult('🌟', 'Perfect!', data.fun_feedback, 'correct');
+        } else if (data.has_dyslexia) {
+            showResult('🔍', 'Dyslexia Detected', data.fun_feedback, 'dyslexia');
+        } else if (data.result_level === 'Incorrect Word') {
+            showResult('❌', 'Incorrect Word', data.fun_feedback, 'wrong');
+        } else {
+            showResult('📝', 'No Dyslexia', data.fun_feedback, 'wrong');
         }
+    } catch (err) {
+        loadingDiv.classList.remove('show');
+        analyzeBtn.disabled = false;
+        console.error('Upload error:', err);
         
-        const loadingDiv = document.getElementById('loading');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        
-        loadingDiv.classList.add('show');
-        analyzeBtn.disabled = true;
-        hideResult();
-        
-        const formData = new FormData();
-        formData.append('image', selectedFile);
-        formData.append('expected_word', expectedWord);
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-            
-            const response = await fetch('/predict', {
-                method: 'POST',
-                body: formData,
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            const data = await response.json();
-            
-            loadingDiv.classList.remove('show');
-            analyzeBtn.disabled = false;
-            
-            if (data.error) {
-                showResult('⚠️', 'Oops!', data.error, 'unclear');
-                return;
-            }
-            
-            if (data.is_correct) {
-                showResult('🌟', 'Perfect!', data.fun_feedback, 'correct');
-            } else if (data.has_dyslexia) {
-                // Show detailed reversal info if available
-                let feedback = data.fun_feedback;
-                if (data.reversal_details && data.reversal_details.length > 0) {
-                    const reversedLetters = data.reversal_details.map(r => r.expected).join(', ');
-                    feedback += ` (Reversed letters: ${reversedLetters})`;
-                }
-                showResult('🔍', 'Dyslexia Detected', feedback, 'dyslexia');
-            } else {
-                showResult('📝', 'No Dyslexia', data.fun_feedback, 'wrong');
-            }
-        } catch (err) {
-            loadingDiv.classList.remove('show');
-            analyzeBtn.disabled = false;
-            console.error('Upload error:', err);
-            
-            if (err.name === 'AbortError') {
-                showResult('⚠️', 'Timeout', 'The server is taking too long to respond. Please try again.', 'unclear');
-            } else {
-                showResult('⚠️', 'Error', 'Network error. Please check your connection and try again.', 'unclear');
-            }
+        if (err.name === 'AbortError') {
+            showResult('⚠️', 'Timeout', 'The server is taking too long to respond. Please try again.', 'unclear');
+        } else {
+            showResult('⚠️', 'Error', 'Network error. Please check your connection and try again.', 'unclear');
         }
     }
+}
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
