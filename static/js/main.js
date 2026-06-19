@@ -25,4 +25,38 @@ if (data.reversal_images && data.reversal_images.length > 0) {
     });
 } else {
     reversalSection.style.display = 'none';
+
+    // NEW: Display per‑letter details in the table (text only)
+function displayLetterDetails(data) {
+    const container = document.getElementById('letterDetails');
+    const tbody = document.getElementById('letterDetailsBody');
+    if (data.letter_details && data.letter_details.length > 0) {
+        tbody.innerHTML = '';
+        data.letter_details.forEach(detail => {
+            const row = document.createElement('tr');
+            row.style.borderBottom = '1px solid #eaeaea';
+            let colour = '#27ae60';   // normal = green
+            let label = 'Normal';
+            if (detail.type === 'reversal') {
+                colour = '#e74c3c';
+                label = '🔄 Reversal';
+            } else if (detail.type === 'corrected') {
+                colour = '#f39c12';
+                label = '✏️ Corrected';
+            } else {
+                label = '✅ Normal';
+            }
+            row.innerHTML = `
+                <td style="padding: 0.5rem 1rem; text-align: center;">${detail.position}</td>
+                <td style="padding: 0.5rem 1rem; text-align: center; font-weight: bold;">${detail.expected}</td>
+                <td style="padding: 0.5rem 1rem; text-align: center; color: ${colour}; font-weight: bold;">${label}</td>
+                <td style="padding: 0.5rem 1rem; text-align: center;">${detail.confidence}%</td>
+            `;
+            tbody.appendChild(row);
+        });
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
 }

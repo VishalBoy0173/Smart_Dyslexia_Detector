@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Spelling Bee - DyslexiAI{% endblock %}
+{% block topbar_title %}📝 <span>Spelling Bee</span>{% endblock %}
+
+{% block content %}
+<style>
+    .spelling-card {
+        max-width: 600px;
+        margin: 0 auto;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 2rem;
+        text-align: center;
+    }
+    .word-display {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary);
+        background: var(--primary-bg);
+        padding: 1rem 2rem;
+        border-radius: var(--radius-sm);
+        margin: 1.5rem 0;
+        letter-spacing: 4px;
+        font-family: 'Courier New', monospace;
+    }
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin: 1rem 0;
+    }
+    .input-group input {
+        flex: 1;
+        max-width: 250px;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 1.2rem;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 2px;
+        text-transform: lowercase;
+    }
+    .input-group input:focus {
+        outline: none;
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+    }
+    .feedback {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+        min-height: 2rem;
+    }
+    .feedback.correct { color: var(--success); }
+    .feedback.incorrect { color: var(--danger); }
+    .score {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        margin: 1rem 0;
+    }
+    .level-selector {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin: 0.5rem 0;
+    }
+    .level-selector button {
+        padding: 0.3rem 1.2rem;
+        border-radius: 999px;
+        border: 2px solid var(--border);
+        background: transparent;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: 'Nunito', sans-serif;
+        font-size: 0.85rem;
+    }
+    .level-selector button.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .level-selector button:hover:not(.active) {
+        background: var(--primary-bg);
+    }
+</style>
+
+<div class="spelling-card">
+    <h2>📝 Spelling Bee</h2>
+    <p style="color: var(--text-muted);">Type the word you see below.</p>
+
+    <div class="level-selector">
+        <button class="level-pill active" data-level="easy" onclick="setLevel('easy')">Easy</button>
+        <button class="level-pill" data-level="medium" onclick="setLevel('medium')">Medium</button>
+        <button class="level-pill" data-level="hard" onclick="setLevel('hard')">Hard</button>
+    </div>
+
+    <div class="word-display" id="wordToSpell">—</div>
+
+    <div class="input-group">
+        <input type="text" id="userInput" placeholder="Type here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button class="btn btn-success" onclick="checkSpelling()">Check</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="score">
+        Score: <span id="scoreDisplay">0</span> / <span id="totalDisplay">0</span>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-accent" onclick="nextWord()">Next Word ➜</button>
+        <button class="btn btn-danger" onclick="resetGame()">🔄 Reset Game</button>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+        <a href="{{ url_for('practice_page') }}" class="btn btn-ghost btn-sm">← Back to Games</a>
+    </div>
+</div>
+
+<script>
+    let currentWord = '';
+    let currentLevel = 'easy';
+    let score = 0;
+    let total = 0;
+    let answered = false;
+
+    // Load a new word
+    async function fetchWord() {
+        try {
+            const url = `/api/get_word?level=${currentLevel}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            return data.word;
+        } catch (err) {
+            console.error('Error fetching word:', err);
+            // Fallback word
+            return 'dog';
+        }
+    }
+
+    async function nextWord() {
+        // Reset input and feedback
+        document.getElementById('userInput').value = '';
+        document.getElementById('feedback').textContent = '';
+        document.getElementById('feedback').className = 'feedback';
+        answered = false;
+
+        const word = await fetchWord();
+        currentWord = word;
+        document.getElementById('wordToSpell').textContent = word;
+        document.getElementById('userInput').focus();
+    }
+
+    function checkSpelling() {
+        if (answered) {
+            document.getElementById('feedback').textContent = 'You already answered this word! Click "Next Word" to continue.';
+            document.getElementById('feedback').className = 'feedback incorrect';
+            return;
+        }
+
+        const userInput = document.getElementById('userInput').value.trim().toLowerCase();
+        if (userInput === '') {
+            document.getElementById('feedback').textContent = 'Please type something!';
+            document.getElementById('feedback').className = 'feedback incorrect';
+            return;
+        }
+
+        const isCorrect = userInput === currentWord;
+        total++;
+        if (isCorrect) score++;
+
+        // Update score
+        document.getElementById('scoreDisplay').textContent = score;
+        document.getElementById('totalDisplay').textContent = total;
+
+        // Show feedback
+        const feedbackEl = document.getElementById('feedback');
+        if (isCorrect) {
+            feedbackEl.textContent = '✅ Correct! Well done!';
+            feedbackEl.className = 'feedback correct';
+            playGlobalSound('correct');
+        } else {
+            feedbackEl.innerHTML = `❌ Incorrect. The correct spelling is: <strong>${currentWord}</strong>`;
+            feedbackEl.className = 'feedback incorrect';
+            playGlobalSound('error');
+        }
+
+        answered = true;
+    }
+
+    function setLevel(level) {
+        currentLevel = level;
+        document.querySelectorAll('.level-selector button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.level === level);
+        });
+        resetGame();
+    }
+
+    function resetGame() {
+        score = 0;
+        total = 0;
+        document.getElementById('scoreDisplay').textContent = '0';
+        document.getElementById('totalDisplay').textContent = '0';
+        document.getElementById('feedback').textContent = '';
+        document.getElementById('feedback').className = 'feedback';
+        answered = false;
+        nextWord();
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('userInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            checkSpelling();
+        }
+    });
+
+    // Start the game
+    resetGame();
+</script>
+{% endblock %}

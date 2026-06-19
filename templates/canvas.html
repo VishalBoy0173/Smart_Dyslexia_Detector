@@ -62,6 +62,25 @@
     </div>
 </div>
 
+<!-- NEW: Per-letter analysis table (text only) -->
+    <div id="letterDetails" style="margin-top: 2rem; display: none;">
+        <h4>📝 Per‑Letter Analysis</h4>
+        <div style="overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+            <table style="width:100%; border-collapse: collapse; background: white;">
+                <thead style="background: var(--primary); color: white;">
+                    <tr>
+                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Position</th>
+                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Expected</th>
+                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Classified As</th>
+                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="letterDetailsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <script>
     // ---------- Word lists (same as upload.html) ----------
     const wordLists = {
@@ -197,6 +216,7 @@
             const fd = new FormData();
             fd.append('image', blob, 'canvas.png');
             fd.append('expected_word', expectedWord);
+            fd.append
             try {
                 const res = await fetch('/predict', { method:'POST', body:fd });
                 const data = await res.json();

@@ -9,7 +9,7 @@
 <body>
     <div class="app-layout">
         <aside class="sidebar">
-            <div class="sidebar-brand"><div class="brand-logo">🦉 DyslexiAI</div><div class="brand-sub">Smart Detector</div></div>
+            <div class="sidebar-brand"><div class="brand-logo">🦉 Dyslexia</div><div class="brand-sub">Smart Detector</div></div>
             <div class="sidebar-user"><div class="sidebar-avatar">{{ session.get('username', '?')[0] | upper }}</div><div><div class="sidebar-username">{{ session.get('username') }}</div><div class="sidebar-role">Student</div></div></div>
             <nav class="sidebar-nav">
                 <div class="nav-section-label">Main</div>
@@ -78,7 +78,23 @@
                     <div class="result-message" id="resultMessage"></div>
                     <button class="btn btn-primary" onclick="newWordAndReset()">🔄 Try Another Word</button>
                 </div>
+                <div id="letterDetails" style="margin-top: 2rem; display: none;">
                 
+                    <h4>📝 Per‑Letter Analysis</h4>
+                <div style="overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+                    <table style="width:100%; border-collapse: collapse; background: white;">
+                        <thead style="background: var(--primary); color: white;">
+                            <tr>
+                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Position</th>
+                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Expected</th>
+                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Classified As</th>
+                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="letterDetailsBody"></tbody>
+                    </table>
+                </div>
+            </div>
                 <!-- Audio elements for feedback -->
                 <audio id="soundCorrect" preload="auto">
                     <source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg">

@@ -2,13 +2,15 @@
 {% block title %}Practice Games - DyslexiAI{% endblock %}
 {% block topbar_title %}🎮 <span>Practice Games</span>{% endblock %}
 {% block content %}
-<div class="page-header"><h1>Practice Games 🎮</h1><p>Fun activities to improve your letter recognition skills.</p></div>
-<div class="grid-3">
-    <a href="{{ url_for('game_reversal') }}" class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🔍</div><h3>Letter Detective</h3><p class="text-muted">Spot reversed letters.</p></a>
-    <a href="{{ url_for('game_bingo') }}" class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">🎯</div><h3>Word Bingo</h3><p class="text-muted">Match words on your bingo card.</p></a>
-    <a href="{{ url_for('game_lotto') }}" class="card card-clickable card-accent-green"><div style="font-size:2.5rem;">🎟️</div><h3>Spelling Lotto</h3><p class="text-muted">Match word cards to picture boards.</p></a>
-    <a href="{{ url_for('game_words') }}" class="card card-clickable card-accent-amber"><div style="font-size:2.5rem;">🧩</div><h3>Word Builder</h3><p class="text-muted">Build words with correct order.</p></a>
-    <a href="{{ url_for('game_quiz') }}" class="card card-clickable card-accent-blue"><div style="font-size:2.5rem;">📝</div><h3>Spelling Bee</h3><p class="text-muted">Type the correct spelling.</p></a>
-    <a href="{{ url_for('game_memory') }}" class="card card-clickable card-accent-red"><div style="font-size:2.5rem;">🧠</div><h3>Memory Match</h3><p class="text-muted">Find matching word pairs.</p></a>
+<div class="page-header">
+    <h1>Practice Games 🎮</h1>
+    <p>Improve your spelling skills with our Spelling Bee game!</p>
+</div>
+<div style="display: flex; justify-content: center; align-items: center;">
+    <a href="{{ url_for('game_quiz') }}" class="card card-clickable card-accent-blue" style="max-width: 320px; text-align: center; padding: 2rem;">
+        <div style="font-size: 3rem;">📝</div>
+        <h3 style="margin: 1rem 0 0.5rem;">Spelling Bee</h3>
+        <p class="text-muted">Type the correct spelling of words.</p>
+    </a>
 </div>
 {% endblock %}

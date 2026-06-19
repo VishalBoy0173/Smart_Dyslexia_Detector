@@ -1,9 +1,0 @@
-path: ./synthetic_dyslexia_dataset   # or absolute path if different
-train: images/train
-val: images/val
-
-nc: 3
-names:
-  0: normal
-  1: reversal
-  2: corrected

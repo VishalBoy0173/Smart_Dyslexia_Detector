@@ -15,6 +15,8 @@ from spellchecker import SpellChecker
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as pdf_canvas
 import io
+import re
+from werkzeug.security import generate_password_hash
 
 # ─── Flask Setup ─────────────────
 app = Flask(__name__)
@@ -346,7 +348,7 @@ def segment_letters(word_img):
 
 # ═══════════════ YOLO LETTER CLASSIFICATION (PRIMARY DETECTOR) ═══════════════
 
-def classify_letters_with_yolo(word_img, expected_word):
+def classify_letters_with_yolo(word_img, expected_word, threshold=0.7):
     """
     PRIMARY dyslexia detection function.
 
@@ -436,7 +438,7 @@ def classify_letters_with_yolo(word_img, expected_word):
         }
 
         # Flag reversal and corrected as dyslexia signals
-        if detected_class == CLASS_REVERSAL and confidence > 0.25:
+        if detected_class == CLASS_REVERSAL and confidence > threshold:
             reversed_to = None
             if expected_char in REVERSAL_PAIRS:
                 reversed_to = REVERSAL_PAIRS[expected_char][0]
@@ -544,7 +546,7 @@ def is_only_reversal_difference(written, expected):
     return True
 
 
-def analyze_single_word(image_path, expected_word):
+def analyze_single_word(image_path, expected_word, source='upload'):
     try:
         original_img = cv2.imread(image_path)
         if original_img is None:
@@ -590,7 +592,8 @@ def analyze_single_word(image_path, expected_word):
 
         # ── YOLO (always runs) ─────────────────────────────────
         print("🧠 YOLO visual letter classification (primary detector)...")
-        letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word)
+        threshold = 0.5 if source == 'upload' else 0.65
+        letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word, threshold)
 
         if not letters_found:
             return {
@@ -700,20 +703,45 @@ def register_page():
 @app.route('/api/register', methods=['POST'])
 def api_register():
     data = request.json
-    hashed = generate_password_hash(data['password'])
+    username = data.get('username', '').strip()
+    email = data.get('email', '').strip()
+    password = data.get('password', '')
+
+    # Input validation
+    if len(username) < 3:
+        return jsonify({'error': 'Username must be at least 3 characters long.'}), 400
+
+    # Email validation (if provided)
+    if email:
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'error': 'Please provide a valid email address.'}), 400
+
+    # Password strength validation
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters long.'}), 400
+    if not re.search(r'[A-Z]', password):
+        return jsonify({'error': 'Password must contain at least one uppercase letter.'}), 400
+    if not re.search(r'[a-z]', password):
+        return jsonify({'error': 'Password must contain at least one lowercase letter.'}), 400
+    if not re.search(r'[0-9]', password):
+        return jsonify({'error': 'Password must contain at least one number.'}), 400
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return jsonify({'error': 'Password must contain at least one special character.'}), 400
+
+    hashed = generate_password_hash(password)
+
     conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute(
             "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
-            (data['username'], data.get('email', ''), hashed)
+            (username, email, hashed)
         )
         conn.commit()
-        
-        return jsonify({'success': True, 'message': 'Registration successful!'})
-    
+        return jsonify({'success': True, 'message': 'Registration successful! Please login.'})
     except mysql.connector.IntegrityError:
-        return jsonify({'error': 'Username already exists'}), 409
+        return jsonify({'error': 'Username already exists. Please choose another.'}), 409
     finally:
         cursor.close()
         conn.close()
@@ -1029,16 +1057,19 @@ def predict():
 
         filepath, filename = save_uploaded_image(file)
         expected_word = request.form.get('expected_word', 'dog').lower().strip()
+    
+        source = request.form.get('source', 'upload')
+        result = analyze_single_word(filepath, expected_word, source=source)
 
-        result = analyze_single_word(filepath, expected_word)
-
-        # ✅ Delete uploaded image after processing (database stores all info)
-        try:
-            if os.path.exists(filepath):
-                os.remove(filepath)
-                print(f"🗑️ Deleted uploaded image: {filename}")
-        except Exception as e:
-            print(f"⚠️ Could not delete image: {e}")
+        # ─── KEEP IMAGES (PERMANENTLY SAVED) ──────────────────────────
+        # Image is now stored permanently in static/uploads/
+        # DO NOT delete – it will be displayed in History page
+        # try:
+        #     if os.path.exists(filepath):
+        #         os.remove(filepath)
+        #         print(f"🗑️ Deleted uploaded image: {filename}")
+        # except Exception as e:
+        #     print(f"⚠️ Could not delete image: {e}")
 
         # ✅ Clean up any leftover temp files from YOLO
         cleanup_temp_files()

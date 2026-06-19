@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - DyslexiAI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .password-strength {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+        }
+        .strength-weak { color: #dc2626; }
+        .strength-medium { color: #f59e0b; }
+        .strength-strong { color: #10b981; }
+        .validation-error {
+            color: #dc2626;
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="auth-page">
@@ -15,22 +32,34 @@
                 <div class="auth-logo-sub">Smart Detector</div>
             </div>
             <div class="auth-title">Create your account</div>
-            
+
             <div class="form-group">
                 <label class="form-label" for="username">Username</label>
                 <input type="text" id="username" class="form-input" placeholder="Choose a username" required>
+                <div id="usernameError" class="validation-error"></div>
             </div>
+
             <div class="form-group">
                 <label class="form-label" for="email">Email (optional)</label>
                 <input type="email" id="email" class="form-input" placeholder="Enter your email">
+                <div id="emailError" class="validation-error"></div>
             </div>
+
             <div class="form-group">
                 <label class="form-label" for="password">Password</label>
                 <input type="password" id="password" class="form-input" placeholder="Create a password" required>
+                <div id="passwordError" class="validation-error"></div>
+                <div class="password-strength" id="passwordStrength"></div>
             </div>
-            
-            <button class="btn btn-primary btn-full" onclick="register()">Create Account</button>
-            
+
+            <div class="form-group">
+                <label class="form-label" for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm your password" required>
+                <div id="confirmError" class="validation-error"></div>
+            </div>
+
+            <button class="btn btn-primary btn-full" id="registerBtn" onclick="register()">Create Account</button>
+
             <div class="error-msg" id="errorMsg"></div>
             <div class="success-msg" id="successMsg"></div>
             <div class="auth-footer">
@@ -40,24 +69,139 @@
     </div>
 
     <script>
-    async function register() {
-        const res = await fetch('/api/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                username: document.getElementById('username').value,
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value
-            })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('successMsg').textContent = data.message;
-            setTimeout(() => { window.location.href = '/login'; }, 1500);
-        } else {
-            document.getElementById('errorMsg').textContent = data.error;
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/)) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+            return strength;
         }
-    }
+
+        function updatePasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthDiv = document.getElementById('passwordStrength');
+            if (password === "") {
+                strengthDiv.innerHTML = "";
+                return;
+            }
+            const strength = checkPasswordStrength(password);
+            if (strength <= 2) {
+                strengthDiv.innerHTML = "Weak password – use at least 8 characters, uppercase, lowercase, number, and special character.";
+                strengthDiv.className = "password-strength strength-weak";
+            } else if (strength === 3) {
+                strengthDiv.innerHTML = "Medium password – consider adding numbers or special characters.";
+                strengthDiv.className = "password-strength strength-medium";
+            } else {
+                strengthDiv.innerHTML = "Strong password!";
+                strengthDiv.className = "password-strength strength-strong";
+            }
+        }
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            // Username validation
+            if (username.length < 3) {
+                document.getElementById('usernameError').innerText = "Username must be at least 3 characters.";
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').innerText = "";
+            }
+
+            // Email validation (only if provided)
+            if (email !== "") {
+                if (!validateEmail(email)) {
+                    document.getElementById('emailError').innerText = "Please enter a valid email address.";
+                    isValid = false;
+                } else {
+                    document.getElementById('emailError').innerText = "";
+                }
+            } else {
+                document.getElementById('emailError').innerText = "";
+            }
+
+            // Password strength
+            const strength = checkPasswordStrength(password);
+            if (strength < 4) {
+                document.getElementById('passwordError').innerText = "Password must be at least 8 characters, include uppercase, lowercase, number, and special character.";
+                isValid = false;
+            } else {
+                document.getElementById('passwordError').innerText = "";
+            }
+
+            // Confirm password match
+            if (password !== confirm) {
+                document.getElementById('confirmError').innerText = "Passwords do not match.";
+                isValid = false;
+            } else {
+                document.getElementById('confirmError').innerText = "";
+            }
+
+            return isValid;
+        }
+
+        async function register() {
+            // Clear previous messages
+            document.getElementById('errorMsg').innerText = "";
+            document.getElementById('successMsg').innerText = "";
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('successMsg').innerText = data.message;
+                    setTimeout(() => { window.location.href = '/login'; }, 1500);
+                } else {
+                    document.getElementById('errorMsg').innerText = data.error;
+                }
+            } catch (err) {
+                document.getElementById('errorMsg').innerText = "Network error. Please try again.";
+            }
+        }
+
+        // Attach real-time validation
+        document.getElementById('password').addEventListener('input', updatePasswordStrength);
+        document.getElementById('confirmPassword').addEventListener('input', () => {
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            if (password !== confirm) {
+                document.getElementById('confirmError').innerText = "Passwords do not match.";
+            } else {
+                document.getElementById('confirmError').innerText = "";
+            }
+        });
+        document.getElementById('username').addEventListener('input', () => {
+            const username = document.getElementById('username').value.trim();
+            if (username.length > 0 && username.length < 3) {
+                document.getElementById('usernameError').innerText = "Username must be at least 3 characters.";
+            } else {
+                document.getElementById('usernameError').innerText = "";
+            }
+        });
     </script>
 </body>
 </html>

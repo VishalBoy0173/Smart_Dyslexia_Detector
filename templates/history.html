@@ -1,23 +1,51 @@
 {% extends "base.html" %}
 {% block title %}History - DyslexiAI{% endblock %}
 {% block topbar_title %}📋 <span>Screening History</span>{% endblock %}
+
 {% block content %}
 <div class="page-header"><h1>Screening History</h1><p>Your past word screenings.</p></div>
 {% if screenings %}
 <table class="data-table">
-    <thead><tr><th>Date</th><th>Word</th><th>Written</th><th>Result</th><th>Method</th></tr></thead>
+    <thead>
+        <tr>
+            <th>Image</th>
+            <th>Date</th>
+            <th>Word</th>
+            <th>Written</th>
+            <th>Result</th>
+            <th>Method</th>
+        </tr>
+    </thead>
     <tbody>
     {% for s in screenings %}
     <tr>
+        <td>
+            {% if s.image_path %}
+                <img src="{{ url_for('static', filename='uploads/' + s.image_path) }}" 
+                     style="width:80px; height:auto; border-radius:6px; border:1px solid #ddd;">
+            {% else %}
+                —
+            {% endif %}
+        </td>
         <td>{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '' }}</td>
         <td><strong>{{ s.expected or '—' }}</strong></td>
         <td>{{ s.written or '—' }}</td>
-        <td>{% if 'No Dyslexia' in (s.risk_level or '') %}<span class="badge badge-green">✅ Correct</span>{% elif 'Dyslexia' in (s.risk_level or '') %}<span class="badge badge-red">🔴 Dyslexia</span>{% else %}<span class="badge badge-amber">⚠️ Practice</span>{% endif %}</td>
+        <td>
+            {% if 'No Dyslexia' in (s.risk_level or '') %}
+                <span class="badge badge-green">✅ Correct</span>
+            {% elif 'Dyslexia' in (s.risk_level or '') %}
+                <span class="badge badge-red">🔴 Dyslexia</span>
+            {% else %}
+                <span class="badge badge-amber">⚠️ Practice</span>
+            {% endif %}
+        </td>
         <td>{{ s.method or '—' }}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
-{% else %}<p class="text-muted">No screenings yet. <a href="{{ url_for('upload_page') }}">Start now!</a></p>{% endif %}
+{% else %}
+    <p class="text-muted">No screenings yet. <a href="{{ url_for('upload_page') }}">Start now!</a></p>
+{% endif %}
 <a href="{{ url_for('dashboard') }}" class="btn btn-ghost mt-3">← Dashboard</a>
 {% endblock %}
