@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Practice Worksheets - DyslexiAI{% endblock %}
+{% block topbar_title %}📄 <span>Practice Worksheets</span>{% endblock %}
+
+{% block content %}
+<style>
+    .worksheet-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+    }
+    .worksheet-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    .worksheet-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--primary-light);
+    }
+    .worksheet-card .icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    .worksheet-card h4 {
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.25rem;
+    }
+    .worksheet-card p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+    }
+    .settings-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        align-items: center;
+        background: var(--surface);
+        padding: 1.25rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-top: 1.5rem;
+    }
+    .settings-bar select,
+    .settings-bar button {
+        padding: 0.5rem 1.2rem;
+        border-radius: var(--radius-sm);
+        border: 2px solid var(--border);
+        font-family: 'Nunito', sans-serif;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .settings-bar select:focus {
+        outline: none;
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+    }
+    .settings-bar .btn-download {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 0.6rem 2rem;
+        font-weight: 700;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .settings-bar .btn-download:hover {
+        background: #35b08a;
+    }
+    .theme-tag {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: var(--primary-bg);
+        color: var(--primary);
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="page-header">
+    <h1>📄 Practice Worksheets</h1>
+    <p>Download printable handwriting practice worksheets. Choose a theme, level, and language.</p>
+</div>
+
+<!-- Settings Bar -->
+<div class="settings-bar">
+    <div>
+        <label style="font-weight:600; margin-right:0.5rem;">Level:</label>
+        <select id="worksheetLevel">
+            <option value="easy" selected>Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+    </div>
+    <div>
+        <label style="font-weight:600; margin-right:0.5rem;">Language:</label>
+        <select id="worksheetLang">
+            <option value="english" selected>🇬🇧 English</option>
+            <option value="malay">🇲🇾 Malay</option>
+        </select>
+    </div>
+    <button class="btn-download" onclick="downloadWorksheet()">
+        📥 Download Worksheet
+    </button>
+</div>
+
+<!-- Theme Cards -->
+<div class="worksheet-grid">
+    <div class="worksheet-card" onclick="downloadTheme('animals')">
+        <div class="icon">🐾</div>
+        <h4>Animals</h4>
+        <p>Dog, cat, bird, bear & more</p>
+        <span class="theme-tag">8 words</span>
+    </div>
+    <div class="worksheet-card" onclick="downloadTheme('food')">
+        <div class="icon">🍎</div>
+        <h4>Food</h4>
+        <p>Bread, apple, banana & more</p>
+        <span class="theme-tag">8 words</span>
+    </div>
+    <div class="worksheet-card" onclick="downloadTheme('colors')">
+        <div class="icon">🎨</div>
+        <h4>Colors</h4>
+        <p>Red, blue, purple & more</p>
+        <span class="theme-tag">8 words</span>
+    </div>
+    <div class="worksheet-card" onclick="downloadTheme('actions')">
+        <div class="icon">🏃</div>
+        <h4>Actions</h4>
+        <p>Run, jump, dance & more</p>
+        <span class="theme-tag">8 words</span>
+    </div>
+    <div class="worksheet-card" onclick="downloadTheme('nature')">
+        <div class="icon">🌿</div>
+        <h4>Nature</h4>
+        <p>Sun, river, forest & more</p>
+        <span class="theme-tag">8 words</span>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div style="margin-top: 2rem; padding: 1.25rem; background: var(--primary-bg); border-radius: var(--radius); text-align: center; border-left: 4px solid var(--primary-light);">
+    <p style="margin:0; color: var(--primary);">
+        💡 <strong>Tip:</strong> Each worksheet contains 8 words with 3 writing lines per word. 
+        Perfect for handwriting practice!
+    </p>
+</div>
+
+<script>
+    function downloadTheme(theme) {
+        const level = document.getElementById('worksheetLevel').value;
+        const lang = document.getElementById('worksheetLang').value;
+        const url = `/api/worksheet?level=${level}&theme=${theme}&lang=${lang}`;
+        window.location.href = url;
+    }
+
+    function downloadWorksheet() {
+        const level = document.getElementById('worksheetLevel').value;
+        const lang = document.getElementById('worksheetLang').value;
+        const url = `/api/worksheet?level=${level}&theme=animals&lang=${lang}`;
+        window.location.href = url;
+    }
+
+    // Allow Enter key to trigger download
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const active = document.activeElement;
+            if (active && (active.tagName === 'SELECT' || active.tagName === 'BUTTON')) {
+                e.preventDefault();
+                downloadWorksheet();
+            }
+        }
+    });
+</script>
+{% endblock %}

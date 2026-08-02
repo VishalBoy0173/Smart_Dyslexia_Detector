@@ -7,13 +7,9 @@
 <style>
     .canvas-container { max-width: 950px; margin: 0 auto; }
     .canvas-area { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; }
-    .guide-note { background: var(--primary-bg); border-radius: var(--radius-sm); padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--primary); }
     .canvas-wrapper { display: inline-block; border: 2px solid var(--border); border-radius: var(--radius-sm); background: white; }
-    #writingCanvas { display: block; cursor: crosshair; background: white; }
+    #writingCanvas { display: block; cursor: crosshair; background: white; width: 100%; height: auto; }
     .action-buttons { margin-top: 1.2rem; display: flex; justify-content: center; gap: 1rem; }
-    .level-selector { margin: 0.8rem 0; display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
-    .level-selector button { padding: 0.5rem 1.2rem; border: 2px solid var(--border); border-radius: 25px; cursor: pointer; font-weight: 600; background: white; color: var(--text-muted); }
-    .level-selector button.active { background: var(--primary); color: white; border-color: var(--primary); }
     .word-display { font-size: 5rem; font-weight: 900; color: var(--primary); background: var(--primary-bg); padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); margin: 0.5rem 0; }
 </style>
 
@@ -41,10 +37,9 @@
     <input type="hidden" id="expectedWord" value="dog">
 
     <div class="canvas-area mt-2">
-        <h3>Write in the Boxes</h3>
-        <div class="guide-note">Write <strong>one letter per box</strong> using small letters.</div>
+        <h3>Write the Word Below</h3>
         <div class="canvas-wrapper">
-            <canvas id="writingCanvas" width="600" height="180"></canvas>
+            <canvas id="writingCanvas" width="800" height="300"></canvas>
         </div>
         <div class="action-buttons">
             <button class="btn btn-danger" onclick="confirmClear()">Clear</button>
@@ -62,27 +57,26 @@
     </div>
 </div>
 
-<!-- NEW: Per-letter analysis table (text only) -->
-    <div id="letterDetails" style="margin-top: 2rem; display: none;">
-        <h4>📝 Per‑Letter Analysis</h4>
-        <div style="overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
-            <table style="width:100%; border-collapse: collapse; background: white;">
-                <thead style="background: var(--primary); color: white;">
-                    <tr>
-                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Position</th>
-                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Expected</th>
-                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Classified As</th>
-                        <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Confidence</th>
-                    </tr>
-                </thead>
-                <tbody id="letterDetailsBody"></tbody>
-            </table>
-        </div>
+<!-- Per-letter analysis table -->
+<div id="letterDetails" style="margin-top: 2rem; display: none;">
+    <h4>📝 Per‑Letter Analysis</h4>
+    <div style="overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
+        <table style="width:100%; border-collapse: collapse; background: white;">
+            <thead style="background: var(--primary); color: white;">
+                <tr>
+                    <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Position</th>
+                    <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Expected</th>
+                    <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Classified As</th>
+                    <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Confidence</th>
+                </tr>
+            </thead>
+            <tbody id="letterDetailsBody"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // ---------- Word lists (same as upload.html) ----------
+    // ---------- Word lists (only easy, but keep theme and language) ----------
     const wordLists = {
         easy: { default: ['dog','cat','big','bed','pig','cup','sun','hat','run','box','map','bus','pen','top','pin','bag','log','pot','dig','bug'],
                 animals: ['dog','cat','pig','cow','hen','bat','fox','owl','bee','ant'],
@@ -131,7 +125,11 @@
     }
     function newWord() { fetchNewWord(); clearCanvas(); hideResult(); }
     function newWordAndReset() { newWord(); window.scrollTo({top:0,behavior:'smooth'}); }
-    function hideResult() { document.getElementById('resultBox').style.display = 'none'; document.getElementById('starProgress').style.display = 'none'; }
+    function hideResult() {
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('starProgress').style.display = 'none';
+        document.getElementById('letterDetails').style.display = 'none';
+    }
     function showResult(emoji, title, message, bgColor, borderColor) {
         const box = document.getElementById('resultBox');
         box.style.display = 'block';
@@ -154,91 +152,192 @@
             document.getElementById('starProgress').style.display = 'flex';
         } catch(e) {}
     }
-    // Canvas drawing logic
+
+    // Display per‑letter details
+    function displayLetterDetails(data) {
+        const container = document.getElementById('letterDetails');
+        const tbody = document.getElementById('letterDetailsBody');
+        if (data.letter_details && data.letter_details.length > 0) {
+            tbody.innerHTML = '';
+            data.letter_details.forEach(detail => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #eaeaea';
+                let colour = '#27ae60';
+                let label = 'Normal';
+                if (detail.type === 'reversal') {
+                    colour = '#e74c3c';
+                    label = '🔄 Reversal';
+                } else if (detail.type === 'corrected') {
+                    colour = '#f39c12';
+                    label = '✏️ Corrected';
+                } else {
+                    label = '✅ Normal';
+                }
+                row.innerHTML = `
+                    <td style="padding: 0.5rem 1rem; text-align: center;">${detail.position}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center; font-weight: bold;">${detail.expected}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center; color: ${colour}; font-weight: bold;">${label}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center;">${detail.confidence}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    // ── Canvas (clean white, no boxes) ──────────────────────────────
     const canvas = document.getElementById('writingCanvas');
     const ctx = canvas.getContext('2d');
     let drawing = false;
-    const BOX_SIZE = 70, BOX_GAP = 4, TOP_MARGIN = 55;
-    function drawLetterBoxes() {
-        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,canvas.width,canvas.height);
-        const word = document.getElementById('expectedWord').value || 'dog';
-        const letterCount = word.length;
-        const totalWidth = letterCount * BOX_SIZE + (letterCount-1)*BOX_GAP;
-        const startX = (canvas.width - totalWidth)/2;
-        for(let i=0;i<letterCount;i++) {
-            const x = startX + i*(BOX_SIZE+BOX_GAP), y = TOP_MARGIN;
-            ctx.strokeStyle = '#E0E0E0'; ctx.lineWidth = 0.3; ctx.setLineDash([]);
-            ctx.strokeRect(x,y,BOX_SIZE,BOX_SIZE);
-            ctx.strokeStyle = '#ECECEC'; ctx.lineWidth = 0.2; ctx.setLineDash([3,5]);
-            ctx.beginPath(); ctx.moveTo(x+8, y+BOX_SIZE/2); ctx.lineTo(x+BOX_SIZE-8, y+BOX_SIZE/2); ctx.stroke();
-        }
-        ctx.setLineDash([]); ctx.strokeStyle = '#000000'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+
+    function clearCanvas() {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000000';
     }
-    function clearCanvas() { drawLetterBoxes(); }
+
     function confirmClear() { if(confirm('Clear your writing?')) clearCanvas(); }
-    drawLetterBoxes();
+
+    // Initial clear
+    clearCanvas();
 
     function getCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
         let cx, cy;
         if(e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
         else { cx = e.clientX; cy = e.clientY; }
-        return { x: Math.max(0, Math.min(canvas.width, (cx-rect.left)*sx)), y: Math.max(0, Math.min(canvas.height, (cy-rect.top)*sy)) };
+        return {
+            x: Math.max(0, Math.min(canvas.width, (cx - rect.left) * scaleX)),
+            y: Math.max(0, Math.min(canvas.height, (cy - rect.top) * scaleY))
+        };
     }
-    canvas.addEventListener('mousedown', (e) => { drawing=true; const p=getCoords(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-    canvas.addEventListener('mousemove', (e) => { if(!drawing) return; const p=getCoords(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-    canvas.addEventListener('mouseup', () => { drawing=false; });
-    canvas.addEventListener('mouseleave', () => { drawing=false; });
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); drawing=true; const p=getCoords(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if(!drawing) return; const p=getCoords(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-    canvas.addEventListener('touchend', () => { drawing=false; });
 
-    async function submitCanvas() {
-        document.getElementById('canvasLoading').style.display = 'block';
-        document.getElementById('analyzeCanvasBtn').disabled = true;
-        hideResult();
-        const outCanvas = document.createElement('canvas');
-        outCanvas.width = canvas.width; outCanvas.height = canvas.height;
-        const outCtx = outCanvas.getContext('2d');
-        outCtx.fillStyle = '#FFFFFF'; outCtx.fillRect(0,0,outCanvas.width,outCanvas.height);
-        outCtx.drawImage(canvas,0,0);
-        const imageData = outCtx.getImageData(0,0,outCanvas.width,outCanvas.height);
-        const d = imageData.data;
-        for(let i=0;i<d.length;i+=4) {
-            const brightness = (d[i]+d[i+1]+d[i+2])/3;
-            if(brightness<200) { d[i]=0; d[i+1]=0; d[i+2]=0; }
-            else { d[i]=255; d[i+1]=255; d[i+2]=255; }
+    canvas.addEventListener('mousedown', (e) => {
+        drawing = true;
+        const p = getCoords(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if(!drawing) return;
+        const p = getCoords(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    });
+    canvas.addEventListener('mouseup', () => { drawing = false; });
+    canvas.addEventListener('mouseleave', () => { drawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        drawing = true;
+        const p = getCoords(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if(!drawing) return;
+        const p = getCoords(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    });
+    canvas.addEventListener('touchend', () => { drawing = false; });
+
+    // ── Submit ─────────────────────────────────────────────────────
+async function submitCanvas() {
+    // ── CHECK IF CANVAS IS BLANK ──────────────────────────────
+    const checkImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const checkData = checkImageData.data;
+    let darkPixelCount = 0;
+    const threshold = 200;
+    for (let i = 0; i < checkData.length; i += 4) {
+        const brightness = (checkData[i] + checkData[i+1] + checkData[i+2]) / 3;
+        if (brightness < threshold) {
+            darkPixelCount++;
         }
-        outCtx.putImageData(imageData,0,0);
-        const expectedWord = document.getElementById('expectedWord').value.trim();
-        outCanvas.toBlob(async (blob) => {
-            const fd = new FormData();
-            fd.append('image', blob, 'canvas.png');
-            fd.append('expected_word', expectedWord);
-            fd.append
-            try {
-                const res = await fetch('/predict', { method:'POST', body:fd });
-                const data = await res.json();
-                document.getElementById('canvasLoading').style.display = 'none';
-                document.getElementById('analyzeCanvasBtn').disabled = false;
-                if(data.error) { showResult('⚠️','Oops!',data.error,'#fff8e6','#f39c12'); return; }
-                if(data.is_correct) {
-                    showResult('🌟','Perfect!',data.fun_feedback,'#e6ffe6','#27ae60');
-                } else if(data.has_dyslexia) {
-                    showResult('🔍','Dyslexia Detected',data.fun_feedback,'#ffe6e6','#e74c3c');
-                } else if(data.result_level === 'Incorrect Word') {
-                    showResult('❌','Incorrect Word',data.fun_feedback,'#fff0e0','#e67e22');
-                } else {
-                    showResult('📝','No Dyslexia',data.fun_feedback,'#fff8e6','#f39c12');
-                }
-            } catch(err) {
-                document.getElementById('canvasLoading').style.display = 'none';
-                document.getElementById('analyzeCanvasBtn').disabled = false;
-                showResult('⚠️','Error','Network error.','#ffe6e6','#e74c3c');
-            }
-        }, 'image/png');
     }
+    const totalPixels = canvas.width * canvas.height;
+    const darkPixelRatio = darkPixelCount / totalPixels;
+
+    // If less than 0.5% of pixels are dark, consider it blank
+    if (darkPixelRatio < 0.005) {
+        showResult('✏️', 'Write Something!', 'The canvas is empty. Please write the word before checking.', '#fff8e6', '#f39c12');
+        return;
+    }
+
+    // ── PROCEED WITH SUBMISSION ────────────────────────────────
+    document.getElementById('canvasLoading').style.display = 'block';
+    document.getElementById('analyzeCanvasBtn').disabled = true;
+    hideResult();
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = canvas.width;
+    outCanvas.height = canvas.height;
+    const outCtx = outCanvas.getContext('2d');
+    outCtx.fillStyle = '#FFFFFF';
+    outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+    outCtx.drawImage(canvas, 0, 0);
+
+    // Optional thresholding (keep as before)
+    const imageData = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+    const d = imageData.data;
+    for(let i = 0; i < d.length; i += 4) {
+        const brightness = (d[i] + d[i+1] + d[i+2]) / 3;
+        if(brightness < 200) {
+            d[i] = 0; d[i+1] = 0; d[i+2] = 0;
+        } else {
+            d[i] = 255; d[i+1] = 255; d[i+2] = 255;
+        }
+    }
+    outCtx.putImageData(imageData, 0, 0);
+
+    const expectedWord = document.getElementById('expectedWord').value.trim();
+    outCanvas.toBlob(async (blob) => {
+        const fd = new FormData();
+        fd.append('image', blob, 'canvas.png');
+        fd.append('expected_word', expectedWord);
+        fd.append('source', 'canvas');
+        try {
+            const res = await fetch('/predict', { method: 'POST', body: fd });
+            const data = await res.json();
+            document.getElementById('canvasLoading').style.display = 'none';
+            document.getElementById('analyzeCanvasBtn').disabled = false;
+
+            if(data.error) {
+                showResult('⚠️', 'Oops!', data.error, '#fff8e6', '#f39c12');
+                return;
+            }
+
+            if(data.is_correct) {
+                showResult('🌟', 'Perfect!', data.fun_feedback, '#e6ffe6', '#27ae60');
+            } else if(data.has_dyslexia) {
+                const feedback = data.fun_feedback + ` (${data.dyslexia_confidence}% confidence)`;
+                showResult('🔍', 'Dyslexia Detected', feedback, '#ffe6e6', '#e74c3c');
+            } else if(data.result_level === 'Incorrect Word') {
+                showResult('❌', 'Incorrect Word', data.fun_feedback, '#fff0e0', '#e67e22');
+            } else {
+                showResult('📝', 'No Dyslexia', data.fun_feedback, '#fff8e6', '#f39c12');
+            }
+
+            // Only show per‑letter analysis if not incorrect word
+            if (data.result_level !== 'Incorrect Word') {
+                displayLetterDetails(data);
+            }
+        } catch(err) {
+            document.getElementById('canvasLoading').style.display = 'none';
+            document.getElementById('analyzeCanvasBtn').disabled = false;
+            showResult('⚠️', 'Error', 'Network error.', '#ffe6e6', '#e74c3c');
+        }
+    }, 'image/png');
+}
+
+    // ── Init ──────────────────────────────────────────────────────
     fetchNewWord();
     fetchStars();
 </script>

@@ -592,7 +592,7 @@ def analyze_single_word(image_path, expected_word, source='upload'):
 
         # ── YOLO (always runs) ─────────────────────────────────
         print("🧠 YOLO visual letter classification (primary detector)...")
-        threshold = 0.5 if source == 'upload' else 0.65
+        threshold = 0.5 if source == 'upload' else 0.5
         letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word, threshold)
 
         if not letters_found:
@@ -789,12 +789,15 @@ def upload_page():
 def canvas_page():
     return render_template('canvas.html')
 
-
 @app.route('/practice')
 @login_required
 def practice_page():
     return render_template('practice.html')
 
+@app.route('/worksheets')
+@login_required
+def worksheets_page():
+    return render_template('worksheet.html')
 
 @app.route('/history')
 @login_required
