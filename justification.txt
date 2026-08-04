@@ -1,0 +1,29 @@
+MethodologyA. YOLOv11 ArchitectureBuilding on the YOLO series, YOLOv11 focuses on speed and precision in object detection.
+The YOLOv11 “L” model (YOLOv11L) is a lighter variant with fewer parameters, whereas
+YOLOv11X is a heavier model suitable for more complex tasks [3], [4]. Both incorporate abackbone network with CSP-like layers, a neck portion for feature aggregation (PAN or
+FPN), and a final head with multiple anchor boxes or anchor-free approaches.1) YOLOv11L● Parameter Count: ~25M (approx. 86.6 GFLOPs).● Faster Training: Achieved an epoch time near 0.74 hours for 100 epochs in our
+environment.2) YOLOv11X● Parameter Count: ~56M (approx. 194 GFLOPs).● Potential for Higher Accuracy: Showed epoch times up to ~1.01 hours, but
+sometimes produced slightly higher recall.Both variants share the core pipeline: given a 640 × 640 input, YOLO processes feature
+maps at multiple scales, outputting bounding boxes and class predictions for each region of
+interest.B. Training ProtocolWe trained YOLOv11L and YOLOv11X on Google Colab with an NVIDIA A100 GPU:1. Loss Functions: We used a default combination of CIoU or GIoU for bounding box
+regression, cross-entropy or focal loss for classification, and distribution focal loss for
+bounding box precision.2. Hyperparameters:○ Epochs: 100○ Batch Size: 32○ Resolution: 640 × 640○ Augmentations: Rotations (±5°), translations (0.1 ratio), scale (0.2), and
+minor hue/saturation shifts.3. Optimizer: Adam with a moderate learning rate, along with early stopping or
+patience set to 20.We validated after each epoch on a hold-out set. The best model from each run was saved
+based on maximum validation mAP@0.5–0.95.C. Evaluation MetricsWe evaluated:● Precision: The fraction of correctly identified Reversal/Corrected letters among all
+predicted bounding boxes for those classes.● Recall: The fraction of Reversal/Corrected letters that were detected out of all
+ground-truth letters of those classes.● F1-Score: Harmonic mean of Precision and Recall.● mAP@0.5: Mean Average Precision at an IoU threshold of 0.5.● mAP@0.5–0.95: Average across IoU thresholds from 0.5 to 0.95, which is more
+stringent.
+
+link to the research paper : https://arxiv.org/pdf/2501.15263
+
+
+
+The confidence threshold used to flag a detected letter as "reversal" was selected through empirical testing rather than borrowed from external literature, since no published threshold value would be specific to this model or dataset. A sweep was conducted across the range 0.15–0.75 using the model's own validation set, measuring precision, recall, and F1 score at each step — both overall and specifically for the reversal class, since that is the clinically significant output.
+
+The results showed that model performance is extremely stable across this entire range: F1 remained above 0.999 for both the overall detection task and the reversal class specifically, with no meaningful drop-off even at the loosest threshold tested (0.15) or the strictest (0.75). This indicates that, on the synthetic training data, the model's confidence scores are very cleanly separated — correct detections are almost always high-confidence, and false positives are rare regardless of where the cutoff is drawn.
+
+Given this flat performance curve, the threshold of 0.5 was retained as a stable, conservative midpoint rather than a value chosen to maximize any particular metric — since no single point in the tested range uniquely maximized F1, all were effectively tied. This choice provides a reasonable safety margin should the model encounter handwriting samples with more visual noise or ambiguity than the synthetic dataset contains.
+
+It should be noted that this ablation was run only against the synthetic dataset. Real handwritten input is likely to be noisier and less cleanly separated than synthetic samples, so this result should be read as evidence that the threshold is not a limiting factor on clean data — not as proof that 0.5 is optimal for real-world handwriting. A single uniform threshold of 0.5 is used for both the upload and canvas input paths, as no separate empirical evidence currently exists to justify treating them differently.
+

@@ -1,0 +1,37 @@
+============================================================
+THRESHOLD ABLATION SUMMARY
+============================================================
+Generated: 2026-08-03 19:31:48
+Model: C:\Users\visha\FYP\smartDyslexiaDetector_v2\model\best.pt
+Dataset: C:\Users\visha\FYP\smartDyslexiaDetector_v2\synthetic_dyslexia_dataset\data.yaml
+Sweep: 0.15-0.75 step 0.05, imgsz=None, iou=0.5
+
+OVERALL RESULT
+------------------------------------------------------------
+Peak overall F1 = 0.9990 at threshold = 0.15
+  Precision at peak: 0.9992
+  Recall at peak:    0.9988
+  mAP@0.5 at peak:   0.9950
+F1 stays within 1% of peak across thresholds 0.15-0.75
+
+REVERSAL CLASS (clinically significant)
+------------------------------------------------------------
+Peak reversal F1 = 0.9991 at threshold = 0.15
+  Precision: 0.9991
+  Recall:    0.9991
+
+The reversal-optimal threshold matches the overall-optimal threshold — no conflict between overall accuracy and clinical sensitivity.
+
+============================================================
+HOW TO USE THIS IN YOUR REPORT
+============================================================
+1. Describe the sweep methodology (F1-vs-threshold curve across 0.15-0.75) and cite general literature establishing that this is standard practice for threshold selection in YOLO-based detectors.
+2. Report the numbers above as YOUR empirical result, from YOUR dataset and model —
+   this is the actual evidence, not a borrowed value.
+3. If you want separate thresholds for upload vs. canvas input, you must re-run this
+   script against threshold-labelled subsets for each source — a single combined
+   ablation run (like this one) cannot justify two different production thresholds.
+4. Your code currently hardcodes 0.5 for both the upload and canvas branches in
+   analyze_single_word(). Either (a) update the code to use the threshold(s) this
+   ablation justifies, or (b) update your report/documentation to describe the single
+   uniform threshold the code actually uses. Don't leave the two out of sync.

@@ -348,7 +348,7 @@ def segment_letters(word_img):
 
 # ═══════════════ YOLO LETTER CLASSIFICATION (PRIMARY DETECTOR) ═══════════════
 
-def classify_letters_with_yolo(word_img, expected_word, threshold=0.7):
+def classify_letters_with_yolo(word_img, expected_word, threshold=0.5):
     """
     PRIMARY dyslexia detection function.
 
@@ -959,43 +959,6 @@ def get_phrase():
     else:
         phrase = random.choice(SHORT_PHRASES)
     return jsonify({'phrase': phrase, 'level': level})
-
-
-@app.route('/game/bingo')
-@login_required
-def game_bingo():
-    return render_template('game_bingo.html')
-
-
-@app.route('/game/lotto')
-@login_required
-def game_lotto():
-    return render_template('game_lotto.html')
-
-
-@app.route('/game/reversal')
-@login_required
-def game_reversal():
-    return render_template('game_reversal.html')
-
-
-@app.route('/game/words')
-@login_required
-def game_words():
-    return render_template('game_words.html')
-
-
-@app.route('/game/quiz')
-@login_required
-def game_quiz():
-    return render_template('game_quiz.html')
-
-
-@app.route('/game/memory')
-@login_required
-def game_memory():
-    return render_template('game_memory.html')
-
 
 @app.route('/api/game/get_challenge', methods=['GET'])
 def get_challenge():
