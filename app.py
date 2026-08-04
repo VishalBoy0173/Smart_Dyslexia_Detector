@@ -592,7 +592,7 @@ def analyze_single_word(image_path, expected_word, source='upload'):
 
         # ── YOLO (always runs) ─────────────────────────────────
         print("🧠 YOLO visual letter classification (primary detector)...")
-        threshold = 0.5 if source == 'upload' else 0.5
+        threshold = 0.5 if source == 'upload' else 0.65
         letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word, threshold)
 
         if not letters_found:
