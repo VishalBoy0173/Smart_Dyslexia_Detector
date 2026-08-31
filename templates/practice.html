@@ -1,16 +1,68 @@
 {% extends "base.html" %}
-{% block title %}Practice Games - DyslexiAI{% endblock %}
+
+{% block title %}Practice - DyslexiAI{% endblock %}
 {% block topbar_title %}🎮 <span>Practice Games</span>{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>Practice Games 🎮</h1>
-    <p>Improve your spelling skills with our Spelling Bee game!</p>
-</div>
-<div style="display: flex; justify-content: center; align-items: center;">
-    <a href="{{ url_for('game_quiz') }}" class="card card-clickable card-accent-blue" style="max-width: 320px; text-align: center; padding: 2rem;">
-        <div style="font-size: 3rem;">📝</div>
-        <h3 style="margin: 1rem 0 0.5rem;">Spelling Bee</h3>
-        <p class="text-muted">Type the correct spelling of words.</p>
-    </a>
+<style>
+    .games-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 1rem 0;
+    }
+    .game-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        color: var(--text);
+        border: 2px solid transparent;
+        cursor: pointer;
+    }
+    .game-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--primary-light);
+    }
+    .game-card .emoji {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+    .game-card h3 {
+        margin: 0 0 0.3rem 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    .game-card p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+</style>
+
+<div class="page-content" style="max-width: 800px; margin: 0 auto; text-align: center;">
+    <h2>🎮 Practice Games</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        Play games to improve your spelling and letter recognition skills!
+    </p>
+
+    <div class="games-grid">
+        <a href="{{ url_for('game_spelling_bee') }}" class="game-card">
+            <span class="emoji">📝</span>
+            <h3>Spelling Bee</h3>
+            <p>Type the word you see. Practice your spelling!</p>
+        </a>
+    </div>
+
+    <div style="margin-top: 2rem;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">← Back to Dashboard</a>
+    </div>
 </div>
 {% endblock %}

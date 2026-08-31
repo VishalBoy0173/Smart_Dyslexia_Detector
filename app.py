@@ -96,47 +96,20 @@ OCR_CONFUSIONS = {
     'k': 'x', 'x': 'k', 'j': 'i', 'y': 'v'
 }
 
-THEMED_WORDS = {
-    'animals': {
-        'easy': ['duck', 'pig', 'bird', 'bear', 'deer', 'bull', 'pony', 'frog', 'eel', 'bee'],
-        'medium': ['badger', 'dolphin', 'penguin', 'rabbit', 'butterfly', 'ladybug', 'woodpecker', 'hummingbird'],
-        'hard': ['dinosaur', 'pterodactyl', 'panda', 'peacock', 'butterflyfish', 'dragonfly']
+# ─── Word Lists ───────────────────────────────────────────────
+WORD_LISTS = {
+    'easy': {
+        'default': ['dog'],
+        'animals': ['dog'],
+        'food': ['egg'],
+        'colors': ['red']
     },
-    'food': {
-        'easy': ['bun', 'jam', 'pie', 'egg', 'milk', 'peas', 'beans', 'bread', 'butter', 'pudding'],
-        'medium': ['burger', 'pancake', 'waffle', 'donut', 'pumpkin', 'broccoli', 'cucumber', 'radish'],
-        'hard': ['pineapple', 'blueberry', 'raspberry', 'blackberry', 'pomegranate', 'cauliflower']
-    },
-    'colors': {
-        'easy': ['red', 'blue', 'pink', 'brown', 'gold', 'plum', 'lime', 'mint', 'beige'],
-        'medium': ['purple', 'bronze', 'silver', 'copper', 'maroon', 'crimson', 'indigo', 'violet'],
-        'hard': ['turquoise', 'magenta', 'lavender', 'chartreuse', 'cerulean', 'vermillion']
-    },
-    'actions': {
-        'easy': ['run', 'jump', 'skip', 'dip', 'bob', 'dab', 'mop', 'dig', 'pop', 'tap'],
-        'medium': ['bounce', 'dangle', 'wiggle', 'paddle', 'splash', 'climb', 'dive', 'bury'],
-        'hard': ['balance', 'dribble', 'compute', 'disappear', 'appreciate', 'demonstrate']
-    },
-    'nature': {
-        'easy': ['sun', 'mud', 'dew', 'bud', 'pod', 'bush', 'pond', 'wood', 'peak', 'bark'],
-        'medium': ['branch', 'pebble', 'boulder', 'mountain', 'desert', 'river', 'waterfall', 'canyon'],
-        'hard': ['volcano', 'earthquake', 'hurricane', 'tornado', 'tsunami', 'avalanche']
+    'medium': {
+        'default': ['rabbit'],
+        'animals': ['rabbit'],
+        'food': ['apple'],
+        'colors': ['purple']
     }
-}
-
-DEFAULT_WORDS = {
-    'easy': ['bed', 'big', 'bad', 'dad', 'dab', 'bun', 'bud', 'bug', 'dug', 'pub', 
-             'mud', 'sun', 'bus', 'cup', 'pup', 'sub'],
-    'medium': ['bird', 'brown', 'blue', 'black', 'bread', 'dirty', 'puppy', 'bunny',
-               'mummy', 'daddy', 'pond', 'under', 'bubble', 'purple', 'dragon'],
-    'hard': ['bridge', 'butterfly', 'dolphin', 'penguin', 'mountain', 'umbrella',
-             'bedroom', 'cupboard', 'upstairs', 'downstairs', 'dinosaur', 'backpack']
-}
-
-MALAY_WORDS = {
-    'easy': ['buku', 'bapa', 'dua', 'dapur', 'padi', 'mata', 'budi', 'pura', 'diri', 'muka'],
-    'medium': ['badan', 'bulat', 'pukul', 'dunia', 'bumi', 'buruk', 'putih', 'dalam', 'malam', 'pagi'],
-    'hard': ['bangunan', 'pemerhati', 'dermawan', 'budiman', 'pertama', 'berdiri', 'membaca', 'mendengar']
 }
 
 LETTER_FORMATION = {
@@ -348,7 +321,7 @@ def segment_letters(word_img):
 
 # ═══════════════ YOLO LETTER CLASSIFICATION (PRIMARY DETECTOR) ═══════════════
 
-def classify_letters_with_yolo(word_img, expected_word, threshold=0.5):
+def classify_letters_with_yolo(word_img, expected_word, threshold=0.7):
     """
     PRIMARY dyslexia detection function.
 
@@ -417,18 +390,41 @@ def classify_letters_with_yolo(word_img, expected_word, threshold=0.5):
         # Parse YOLO output
         detected_class = CLASS_NORMAL
         confidence = 0.0
+        
+        # Check if there's a reversal detection
+        reversal_confidence = 0.0
+        has_reversal = False
+        
+        # Check if there's a corrected detection
+        corrected_confidence = 0.0
+        has_corrected = False
 
         if result.boxes is not None and len(result.boxes) > 0:
             cls_ids = result.boxes.cls.cpu().numpy().astype(int)
-            confs   = result.boxes.conf.cpu().numpy()
+            confs = result.boxes.conf.cpu().numpy()
+            
+            # Get the highest confidence overall
             best_idx = np.argmax(confs)
             detected_class = int(cls_ids[best_idx])
             confidence = float(confs[best_idx])
+            
+            # Check for reversal detections
+            for cls_id, conf in zip(cls_ids, confs):
+                if int(cls_id) == CLASS_REVERSAL:
+                    has_reversal = True
+                    reversal_confidence = max(reversal_confidence, float(conf))
+                elif int(cls_id) == CLASS_CORRECTED:
+                    has_corrected = True
+                    corrected_confidence = max(corrected_confidence, float(conf))
 
         class_names = {CLASS_NORMAL: 'normal', CLASS_REVERSAL: 'reversal', CLASS_CORRECTED: 'corrected'}
         class_label = class_names.get(detected_class, 'unknown')
 
         print(f"      Letter {idx+1} ('{expected_char}'): YOLO → {class_label} ({confidence*100:.1f}%)")
+        if has_reversal:
+            print(f"         → Reversal detected with {reversal_confidence*100:.1f}% confidence")
+        if has_corrected:
+            print(f"         → Corrected detected with {corrected_confidence*100:.1f}% confidence")
 
         detail = {
             'position': idx + 1,
@@ -438,18 +434,21 @@ def classify_letters_with_yolo(word_img, expected_word, threshold=0.5):
         }
 
         # Flag reversal and corrected as dyslexia signals
-        if detected_class == CLASS_REVERSAL and confidence > threshold:
+        # Check if ANY reversal detection meets the threshold
+        if has_reversal and reversal_confidence > threshold:
             reversed_to = None
             if expected_char in REVERSAL_PAIRS:
                 reversed_to = REVERSAL_PAIRS[expected_char][0]
 
             detail['type'] = 'reversal'
             detail['reversed_to'] = reversed_to
-            reversals.append(detail)                       # only reversals added here
-            print(f"         ⚠️ REVERSAL detected at position {idx+1}")
+            detail['reversal_confidence'] = round(reversal_confidence * 100, 1)
+            reversals.append(detail)  # Count as dyslexia
+            print(f"         ⚠️ REVERSAL counted at position {idx+1} with {reversal_confidence*100:.1f}% confidence")
 
-        elif detected_class == CLASS_CORRECTED and confidence > 0.25:
+        elif has_corrected and corrected_confidence > 0.25:
             detail['type'] = 'corrected'
+            detail['corrected_confidence'] = round(corrected_confidence * 100, 1)
             # DO NOT append to reversals – correction is not a dyslexia indicator
             print(f"         ℹ️ CORRECTED letter at position {idx+1} (not counted as dyslexia)")
 
@@ -592,13 +591,12 @@ def analyze_single_word(image_path, expected_word, source='upload'):
 
         # ── YOLO (always runs) ─────────────────────────────────
         print("🧠 YOLO visual letter classification (primary detector)...")
-        threshold = 0.5 if source == 'upload' else 0.65
+        threshold = 0.4 if source == 'upload' else 0.65
         letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word, threshold)
 
         if not letters_found:
             return {
                 'expected_word': expected_word,
-                'written_word': written_word or '(unreadable)',
                 'is_correct': False,
                 'has_dyslexia': False,
                 'dyslexia_confidence': 0,
@@ -613,7 +611,6 @@ def analyze_single_word(image_path, expected_word, source='upload'):
         if count_ratio < 0.4:
             return {
                 'expected_word': expected_word,
-                'written_word': written_word or '(partial)',
                 'is_correct': False,
                 'has_dyslexia': False,
                 'dyslexia_confidence': 0,
@@ -639,11 +636,12 @@ def analyze_single_word(image_path, expected_word, source='upload'):
             ]) if reversal_letters else '🔍 Reversal patterns detected.'
             result_level = 'Dyslexia Detected'
             is_correct = False
+                
         else:
             # No reversals – now check if the word is wrong or correct
             if written_word and written_word != expected_word:
-                fun_feedback = f"I read '{written_word}' but the word was '{expected_word}'. Please write the correct word."
-                result_level = 'Incorrect Word'
+                fun_feedback = f"The word you wrote doesn't match '{expected_word}'. Please write the correct word carefully."
+                result_level = 'Not Expected Word'
                 is_correct = False
             else:
                 fun_feedback = random.choice([
@@ -662,7 +660,6 @@ def analyze_single_word(image_path, expected_word, source='upload'):
 
         return {
             'expected_word': expected_word,
-            'written_word': written_word or '(YOLO analysed)',
             'is_correct': is_correct,
             'has_dyslexia': has_dyslexia,
             'dyslexia_confidence': dyslexia_confidence,
@@ -670,7 +667,6 @@ def analyze_single_word(image_path, expected_word, source='upload'):
             'letter_details': letter_details,
             'total_letters': total_letters_analysed,
             'dyslexia_count': dyslexia_count,
-            'fun_feedback': fun_feedback,
             'method': 'yolo_primary',
             'result_level': result_level
         }
@@ -799,6 +795,13 @@ def practice_page():
 def worksheets_page():
     return render_template('worksheet.html')
 
+# ═══════════════ GAME ROUTES ═══════════════
+
+@app.route('/game/spelling-bee')
+@login_required
+def game_spelling_bee():
+    return render_template('spelling_bee.html')
+
 @app.route('/history')
 @login_required
 def history_page():
@@ -905,14 +908,12 @@ def get_user_stats():
 def generate_worksheet():
     level = request.args.get('level', 'easy')
     theme = request.args.get('theme', 'animals')
-    lang  = request.args.get('lang', 'english')
-
-    if lang == 'malay':
-        words = MALAY_WORDS.get(level, MALAY_WORDS['easy'])[:8]
-    elif theme in THEMED_WORDS:
-        words = THEMED_WORDS[theme].get(level, THEMED_WORDS[theme]['easy'])[:8]
+    
+    # Use WORD_LISTS instead of old variables
+    if theme in WORD_LISTS.get(level, {}):
+        words = WORD_LISTS[level].get(theme, WORD_LISTS[level]['default'])[:8]
     else:
-        words = DEFAULT_WORDS.get(level, DEFAULT_WORDS['easy'])[:8]
+        words = WORD_LISTS.get(level, WORD_LISTS['easy'])['default'][:8]
 
     buffer = io.BytesIO()
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
@@ -920,7 +921,7 @@ def generate_worksheet():
     c.setFont("Helvetica-Bold", 24)
     c.drawString(50, height - 50, "✏️ Handwriting Practice Worksheet")
     c.setFont("Helvetica", 14)
-    c.drawString(50, height - 80, f"Level: {level.title()} | Theme: {theme.title()} | Language: {lang.title()}")
+    c.drawString(50, height - 80, f"Level: {level.title()} | Theme: {theme.title()}")
     c.drawString(50, height - 100, "Write each word 3 times:")
     y = height - 150
     c.setFont("Helvetica-Bold", 18)
@@ -940,8 +941,7 @@ def generate_worksheet():
         mimetype='application/pdf',
         download_name=f'worksheet_{level}_{theme}.pdf',
         as_attachment=True
-    )
-
+)
 
 @app.route('/phrase')
 @login_required
@@ -959,6 +959,7 @@ def get_phrase():
     else:
         phrase = random.choice(SHORT_PHRASES)
     return jsonify({'phrase': phrase, 'level': level})
+
 
 @app.route('/api/game/get_challenge', methods=['GET'])
 def get_challenge():
@@ -999,14 +1000,13 @@ def submit_game_score():
 def get_word():
     level = request.args.get('level', 'easy')
     theme = request.args.get('theme', None)
-    lang  = request.args.get('lang', 'english')
+    lang = request.args.get('lang', 'english')  # Keep for compatibility
 
-    if lang == 'malay':
-        word_list = MALAY_WORDS.get(level, MALAY_WORDS['easy'])
-    elif theme and theme in THEMED_WORDS:
-        word_list = THEMED_WORDS[theme].get(level, THEMED_WORDS[theme]['easy'])
-    else:
-        word_list = DEFAULT_WORDS.get(level, DEFAULT_WORDS['easy'])
+    # Use WORD_LISTS instead of old variables
+    level_words = WORD_LISTS.get(level, WORD_LISTS['easy'])
+    
+    # Get theme-specific words or fallback to default
+    word_list = level_words.get(theme, level_words['default']) if theme else level_words['default']
 
     word = random.choice(word_list)
     return jsonify({'word': word, 'level': level, 'theme': theme, 'lang': lang})
@@ -1030,12 +1030,6 @@ def predict():
         # ─── KEEP IMAGES (PERMANENTLY SAVED) ──────────────────────────
         # Image is now stored permanently in static/uploads/
         # DO NOT delete – it will be displayed in History page
-        # try:
-        #     if os.path.exists(filepath):
-        #         os.remove(filepath)
-        #         print(f"🗑️ Deleted uploaded image: {filename}")
-        # except Exception as e:
-        #     print(f"⚠️ Could not delete image: {e}")
 
         # ✅ Clean up any leftover temp files from YOLO
         cleanup_temp_files()

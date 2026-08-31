@@ -11,27 +11,58 @@
     #writingCanvas { display: block; cursor: crosshair; background: white; width: 100%; height: auto; }
     .action-buttons { margin-top: 1.2rem; display: flex; justify-content: center; gap: 1rem; }
     .word-display { font-size: 5rem; font-weight: 900; color: var(--primary); background: var(--primary-bg); padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); margin: 0.5rem 0; }
+    
+    /* Level pills - same as upload page */
+    .level-pills {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .level-pill {
+        padding: 0.4rem 1.2rem;
+        border: 2px solid #d4c4b0;
+        background: white;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        color: #5a4a3a;
+    }
+    .level-pill:hover {
+        background: #f5f0eb;
+        transform: translateY(-1px);
+    }
+    .level-pill.active {
+        background: #6c5b4a;
+        color: white;
+        border-color: #6c5b4a;
+    }
+    .level-pill:active {
+        transform: scale(0.95);
+    }
 </style>
 
 <div class="canvas-container">
     <div class="word-prompt-card">
         <div class="word-prompt-label">📝 Write This Word</div>
-        <div class="level-selector">
-            <button onclick="changeLevel('easy')" id="btnEasy" class="active">Easy</button>
-            <button onclick="changeLevel('medium')" id="btnMedium">Medium</button>
-            <button onclick="changeLevel('hard')" id="btnHard">Hard</button>
+        
+        <!-- Updated level pills - same as upload page -->
+        <div class="level-pills">
+            <button class="level-pill active" data-level="easy" onclick="changeLevel('easy', event)">Easy</button>
+            <button class="level-pill" data-level="medium" onclick="changeLevel('medium', event)">Medium</button>
         </div>
+        
         <div style="margin:0.5rem 0;">
             <select id="themeSelect" onchange="changeTheme()" class="form-select" style="width:auto;display:inline-block;">
-                <option value="">📚 All Words</option>
                 <option value="animals">🐾 Animals</option>
                 <option value="food">🍎 Food</option>
                 <option value="colors">🎨 Colors</option>
             </select>
-            <button onclick="toggleLanguage()" id="langBtn" class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:white;">🇬🇧 English</button>
         </div>
         <div class="word-display" id="wordDisplay">dog</div>
-        <button class="btn btn-ghost btn-sm" onclick="newWord()">🔄 New Word</button>
         <p class="word-prompt-hint" id="levelLabel">3 letters</p>
     </div>
     <input type="hidden" id="expectedWord" value="dog">
@@ -39,7 +70,7 @@
     <div class="canvas-area mt-2">
         <h3>Write the Word Below</h3>
         <div class="canvas-wrapper">
-            <canvas id="writingCanvas" width="800" height="300"></canvas>
+            <canvas id="writingCanvas" width="800" height="400"></canvas>
         </div>
         <div class="action-buttons">
             <button class="btn btn-danger" onclick="confirmClear()">Clear</button>
@@ -76,37 +107,51 @@
 </div>
 
 <script>
-    // ---------- Word lists (only easy, but keep theme and language) ----------
+    // ---------- Word lists ----------
     const wordLists = {
-        easy: { default: ['dog','cat','big','bed','pig','cup','sun','hat','run','box','map','bus','pen','top','pin','bag','log','pot','dig','bug'],
-                animals: ['dog','cat','pig','cow','hen','bat','fox','owl','bee','ant'],
-                food: ['bun','jam','pie','nut','egg','fig','yam','rye','ham','pea'],
-                colors: ['red','tan','blue','pink','lime','teal','plum','rose','navy','gold'] },
-        medium: { default: ['baby','blue','brown','queen','power','water','wake','name','duck','bird','play','jump','read','park','ball','down'],
-                  animals: ['duck','bird','fish','bear','deer','frog','wolf','seal','crab','dove'],
-                  food: ['bread','apple','grape','peach','mango','berry','lemon','olive','prune','dates'],
-                  colors: ['purple','silver','bronze','violet','indigo','maroon','copper','crimson'] },
-        hard: { default: ['bridge','dragon','bubble','purple','window','mirror','number','quarter','dinner','double','pretty','wonder','blanket','problem'],
-                animals: ['rabbit','dragon','puppy','pony','eagle','zebra','whale','tiger','mouse','snail'],
-                food: ['banana','cherry','orange','potato','tomato','carrot','celery','raisin','walnut','almond'],
-                colors: ['magenta','turquoise','lavender','chartreuse','cerulean','vermillion'] }
+        'easy': {
+            'default': ['dog'],
+            'animals': ['dog'],
+            'food': ['egg'],
+            'colors': ['red']
+        },
+        'medium': {
+            'default': ['rabbit'],
+            'animals': ['rabbit'],
+            'food': ['apple'],
+            'colors': ['purple']
+        }
     };
     let currentLevel = 'easy', currentTheme = '', currentLang = 'english';
     const levelLabels = {'easy':'3 letters','medium':'4-5 letters','hard':'6-8 letters'};
 
-    function changeLevel(level) {
+    // Updated changeLevel function to handle event parameter and data-level attribute
+    function changeLevel(level, event) {
         currentLevel = level;
-        document.querySelectorAll('.level-selector button').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn${level.charAt(0).toUpperCase()+level.slice(1)}`).classList.add('active');
+        // Update active state on buttons using data-level attribute
+        document.querySelectorAll('.level-pill').forEach(btn => btn.classList.remove('active'));
+        if (event && event.target) {
+            event.target.classList.add('active');
+        } else {
+            // Fallback: find button with matching data-level
+            document.querySelectorAll('.level-pill').forEach(btn => {
+                if (btn.getAttribute('data-level') === level) {
+                    btn.classList.add('active');
+                }
+            });
+        }
         document.getElementById('levelLabel').textContent = levelLabels[level];
         newWord();
     }
+    
     function changeTheme() { currentTheme = document.getElementById('themeSelect').value; newWord(); }
+    
     function toggleLanguage() {
         currentLang = currentLang === 'english' ? 'malay' : 'english';
         document.getElementById('langBtn').textContent = currentLang === 'english' ? '🇬🇧 English' : '🇲🇾 Malay';
         newWord();
     }
+    
     async function fetchNewWord() {
         try {
             let url = `/api/get_word?level=${currentLevel}`;
@@ -123,6 +168,7 @@
             document.getElementById('expectedWord').value = word;
         }
     }
+    
     function newWord() { fetchNewWord(); clearCanvas(); hideResult(); }
     function newWordAndReset() { newWord(); window.scrollTo({top:0,behavior:'smooth'}); }
     function hideResult() {
@@ -130,6 +176,7 @@
         document.getElementById('starProgress').style.display = 'none';
         document.getElementById('letterDetails').style.display = 'none';
     }
+    
     function showResult(emoji, title, message, bgColor, borderColor) {
         const box = document.getElementById('resultBox');
         box.style.display = 'block';
@@ -144,6 +191,7 @@
         fetchStars();
         box.scrollIntoView({behavior:'smooth'});
     }
+    
     async function fetchStars() {
         try {
             const res = await fetch('/api/user/stats');
@@ -193,11 +241,11 @@
     let drawing = false;
 
     function clearCanvas() {
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = '#ffffff';
     }
 
     function confirmClear() { if(confirm('Clear your writing?')) clearCanvas(); }
@@ -250,94 +298,101 @@
     canvas.addEventListener('touchend', () => { drawing = false; });
 
     // ── Submit ─────────────────────────────────────────────────────
-async function submitCanvas() {
-    // ── CHECK IF CANVAS IS BLANK ──────────────────────────────
-    const checkImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const checkData = checkImageData.data;
-    let darkPixelCount = 0;
-    const threshold = 200;
-    for (let i = 0; i < checkData.length; i += 4) {
-        const brightness = (checkData[i] + checkData[i+1] + checkData[i+2]) / 3;
-        if (brightness < threshold) {
-            darkPixelCount++;
-        }
-    }
-    const totalPixels = canvas.width * canvas.height;
-    const darkPixelRatio = darkPixelCount / totalPixels;
-
-    // If less than 0.5% of pixels are dark, consider it blank
-    if (darkPixelRatio < 0.005) {
-        showResult('✏️', 'Write Something!', 'The canvas is empty. Please write the word before checking.', '#fff8e6', '#f39c12');
-        return;
-    }
-
-    // ── PROCEED WITH SUBMISSION ────────────────────────────────
-    document.getElementById('canvasLoading').style.display = 'block';
-    document.getElementById('analyzeCanvasBtn').disabled = true;
-    hideResult();
-
-    const outCanvas = document.createElement('canvas');
-    outCanvas.width = canvas.width;
-    outCanvas.height = canvas.height;
-    const outCtx = outCanvas.getContext('2d');
-    outCtx.fillStyle = '#FFFFFF';
-    outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-    outCtx.drawImage(canvas, 0, 0);
-
-    // Optional thresholding (keep as before)
-    const imageData = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
-    const d = imageData.data;
-    for(let i = 0; i < d.length; i += 4) {
-        const brightness = (d[i] + d[i+1] + d[i+2]) / 3;
-        if(brightness < 200) {
-            d[i] = 0; d[i+1] = 0; d[i+2] = 0;
-        } else {
-            d[i] = 255; d[i+1] = 255; d[i+2] = 255;
-        }
-    }
-    outCtx.putImageData(imageData, 0, 0);
-
-    const expectedWord = document.getElementById('expectedWord').value.trim();
-    outCanvas.toBlob(async (blob) => {
-        const fd = new FormData();
-        fd.append('image', blob, 'canvas.png');
-        fd.append('expected_word', expectedWord);
-        fd.append('source', 'canvas');
-        try {
-            const res = await fetch('/predict', { method: 'POST', body: fd });
-            const data = await res.json();
-            document.getElementById('canvasLoading').style.display = 'none';
-            document.getElementById('analyzeCanvasBtn').disabled = false;
-
-            if(data.error) {
-                showResult('⚠️', 'Oops!', data.error, '#fff8e6', '#f39c12');
-                return;
+    async function submitCanvas() {
+        // ── CHECK IF CANVAS IS BLANK ──────────────────────────────
+        const checkImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const checkData = checkImageData.data;
+        let darkPixelCount = 0;
+        const threshold = 200;
+        for (let i = 0; i < checkData.length; i += 4) {
+            const brightness = (checkData[i] + checkData[i+1] + checkData[i+2]) / 3;
+            if (brightness < threshold) {
+                darkPixelCount++;
             }
+        }
+        const totalPixels = canvas.width * canvas.height;
+        const darkPixelRatio = darkPixelCount / totalPixels;
 
-            if(data.is_correct) {
-                showResult('🌟', 'Perfect!', data.fun_feedback, '#e6ffe6', '#27ae60');
-            } else if(data.has_dyslexia) {
-                const feedback = data.fun_feedback + ` (${data.dyslexia_confidence}% confidence)`;
-                showResult('🔍', 'Dyslexia Detected', feedback, '#ffe6e6', '#e74c3c');
-            } else if(data.result_level === 'Incorrect Word') {
-                showResult('❌', 'Incorrect Word', data.fun_feedback, '#fff0e0', '#e67e22');
+        // If less than 0.5% of pixels are dark, consider it blank
+        if (darkPixelRatio < 0.005) {
+            showResult('✏️', 'Write Something!', 'The canvas is empty. Please write the word before checking.', '#fff8e6', '#f39c12');
+            return;
+        }
+
+        // ── PROCEED WITH SUBMISSION ────────────────────────────────
+        document.getElementById('canvasLoading').style.display = 'block';
+        document.getElementById('analyzeCanvasBtn').disabled = true;
+        hideResult();
+
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = canvas.width;
+        outCanvas.height = canvas.height;
+        const outCtx = outCanvas.getContext('2d');
+        outCtx.fillStyle = '#000000';
+        outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+        outCtx.drawImage(canvas, 0, 0);
+
+        // Optional thresholding (keep as before)
+        const imageData = outCtx.getImageData(0, 0, outCanvas.width, outCanvas.height);
+        const d = imageData.data;
+        for(let i = 0; i < d.length; i += 4) {
+            const brightness = (d[i] + d[i+1] + d[i+2]) / 3;
+            if(brightness < 200) {
+                d[i] = 0; d[i+1] = 0; d[i+2] = 0;
             } else {
-                showResult('📝', 'No Dyslexia', data.fun_feedback, '#fff8e6', '#f39c12');
+                d[i] = 255; d[i+1] = 255; d[i+2] = 255;
             }
-
-            // Only show per‑letter analysis if not incorrect word
-            if (data.result_level !== 'Incorrect Word') {
-                displayLetterDetails(data);
-            }
-        } catch(err) {
-            document.getElementById('canvasLoading').style.display = 'none';
-            document.getElementById('analyzeCanvasBtn').disabled = false;
-            showResult('⚠️', 'Error', 'Network error.', '#ffe6e6', '#e74c3c');
         }
-    }, 'image/png');
-}
+        outCtx.putImageData(imageData, 0, 0);
+
+        const expectedWord = document.getElementById('expectedWord').value.trim();
+        outCanvas.toBlob(async (blob) => {
+            const fd = new FormData();
+            fd.append('image', blob, 'canvas.png');
+            fd.append('expected_word', expectedWord);
+            fd.append('source', 'canvas');
+            try {
+                const res = await fetch('/predict', { method: 'POST', body: fd });
+                const data = await res.json();
+                document.getElementById('canvasLoading').style.display = 'none';
+                document.getElementById('analyzeCanvasBtn').disabled = false;
+
+                if(data.error) {
+                    showResult('⚠️', 'Oops!', data.error, '#fff8e6', '#f39c12');
+                    return;
+                }
+
+                if(data.is_correct) {
+                    showResult('🌟', 'Perfect!', data.fun_feedback, '#e6ffe6', '#27ae60');
+                } else if(data.has_dyslexia) {
+                    const feedback = data.fun_feedback + ` (${data.dyslexia_confidence}% confidence)`;
+                    showResult('🔍', 'Dyslexia Detected', feedback, '#ffe6e6', '#e74c3c');
+                } else if(data.result_level === 'Incorrect Word') {
+                    showResult('❌', 'Incorrect Word', data.fun_feedback, '#fff0e0', '#e67e22');
+                } else {
+                    showResult('📝', 'No Dyslexia', data.fun_feedback, '#fff8e6', '#f39c12');
+                }
+
+                // Only show per‑letter analysis if not incorrect word
+                if (data.result_level !== 'Incorrect Word') {
+                    displayLetterDetails(data);
+                }
+            } catch(err) {
+                document.getElementById('canvasLoading').style.display = 'none';
+                document.getElementById('analyzeCanvasBtn').disabled = false;
+                showResult('⚠️', 'Error', 'Network error.', '#ffe6e6', '#e74c3c');
+            }
+        }, 'image/png');
+    }
 
     // ── Init ──────────────────────────────────────────────────────
+    // Set initial active state for Easy button
+    document.querySelectorAll('.level-pill').forEach(btn => {
+        if (btn.getAttribute('data-level') === 'easy') {
+            btn.classList.add('active');
+        }
+    });
+    
     fetchNewWord();
     fetchStars();
 </script>

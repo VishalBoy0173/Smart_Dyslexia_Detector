@@ -36,24 +36,16 @@
                     <div class="level-pills">
                         <button class="level-pill active" data-level="easy" onclick="changeLevel('easy', event)">Easy</button>
                         <button class="level-pill" data-level="medium" onclick="changeLevel('medium', event)">Medium</button>
-                        <button class="level-pill" data-level="hard" onclick="changeLevel('hard', event)">Hard</button>
                     </div>
                     <div style="margin-top:0.5rem;">
                         <select class="form-select" id="themeSelect" onchange="changeTheme()" style="max-width:200px;display:inline;">
-                            <option value="">📚 All Words</option>
                             <option value="animals">🐾 Animals</option>
                             <option value="food">🍎 Food</option>
                             <option value="colors">🎨 Colors</option>
-                            <option value="actions">🏃 Actions</option>
-                            <option value="nature">🌿 Nature</option>
                         </select>
-                        <button onclick="toggleLanguage()" id="langBtn" style="padding:0.5em 1em; border-radius:8px; border:1px solid #d4c4b0; cursor:pointer; background:white; font-size:0.85em; margin-left:0.3em;">🇬🇧 English</button>
                     </div>
-                    <button class="btn btn-ghost btn-sm mt-1" onclick="newWord()">🔄 New Word</button>
                 </div>
                 <input type="hidden" id="expectedWord" value="dog">
-                <input type="hidden" id="currentLang" value="english">
-
                 <div class="upload-zone mt-2" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                     <div class="upload-zone-icon">📁</div>
                     <div class="upload-zone-title">Click to upload or drag and drop</div>
@@ -112,29 +104,17 @@
     <script>
     // Word lists organized by level and theme
     const wordLists = {
-        easy: {
-            default: ['dog', 'cat', 'big', 'bed', 'pig', 'cup', 'sun', 'hat', 'run', 'box', 'map', 'bus', 'pen', 'top', 'pin', 'bag', 'log', 'pot', 'dig', 'bug'],
-            animals: ['dog', 'cat', 'pig', 'cow', 'hen', 'bat', 'fox', 'owl', 'bee', 'ant'],
-            food: ['bun', 'jam', 'pie', 'nut', 'egg', 'fig', 'yam', 'rye', 'ham', 'pea'],
-            colors: ['red', 'tan', 'blue', 'pink', 'lime', 'teal', 'plum', 'rose', 'navy', 'gold'],
-            actions: ['run', 'hop', 'dig', 'jog', 'mix', 'fix', 'row', 'bow', 'tip', 'tap'],
-            nature: ['sun', 'sky', 'mud', 'oak', 'fog', 'dew', 'bud', 'log', 'pod', 'gem']
+        'easy': {
+            'default': ['dog'],
+            'animals': ['dog'],
+            'food': ['egg'],
+            'colors': ['red']
         },
-        medium: {
-            default: ['baby', 'blue', 'brown', 'queen', 'power', 'water', 'wake', 'name', 'duck', 'bird', 'play', 'jump', 'read', 'park', 'ball', 'down'],
-            animals: ['duck', 'bird', 'fish', 'bear', 'deer', 'frog', 'wolf', 'seal', 'crab', 'dove'],
-            food: ['bread', 'apple', 'grape', 'peach', 'mango', 'berry', 'lemon', 'olive', 'prune', 'dates'],
-            colors: ['purple', 'silver', 'bronze', 'violet', 'indigo', 'maroon', 'copper', 'crimson'],
-            actions: ['jump', 'play', 'read', 'swim', 'sing', 'draw', 'bake', 'walk', 'ride', 'cook'],
-            nature: ['cloud', 'river', 'stone', 'flame', 'ocean', 'storm', 'field', 'bloom', 'frost', 'coral']
-        },
-        hard: {
-            default: ['bridge', 'dragon', 'bubble', 'purple', 'window', 'mirror', 'number', 'quarter', 'dinner', 'double', 'pretty', 'wonder', 'blanket', 'problem'],
-            animals: ['rabbit', 'dragon', 'puppy', 'pony', 'eagle', 'zebra', 'whale', 'tiger', 'mouse', 'snail'],
-            food: ['banana', 'cherry', 'orange', 'potato', 'tomato', 'carrot', 'celery', 'raisin', 'walnut', 'almond'],
-            colors: ['magenta', 'turquoise', 'lavender', 'chartreuse', 'cerulean', 'vermillion'],
-            actions: ['dance', 'climb', 'paint', 'build', 'write', 'dream', 'laugh', 'explore', 'garden', 'travel'],
-            nature: ['forest', 'garden', 'desert', 'island', 'jungle', 'canyon', 'meadow', 'planet', 'thunder', 'glacier']
+        'medium': {
+            'default': ['rabbit'],
+            'animals': ['rabbit'],
+            'food': ['apple'],
+            'colors': ['purple']
         }
     };
     

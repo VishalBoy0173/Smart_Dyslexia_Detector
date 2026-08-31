@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Letter Testing Tool - Standalone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            color: #2d3436;
+        }
+        
+        .header h1 span {
+            color: #4A90D9;
+        }
+        
+        .header p {
+            color: #7a8a9a;
+            margin-top: 0.3rem;
+        }
+        
+        .letter-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        
+        .letter-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid #d4c4b0;
+            background: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #2d3436;
+        }
+        
+        .letter-btn:hover {
+            background: #e8f0fe;
+            transform: scale(1.05);
+        }
+        
+        .letter-btn.active {
+            background: #4A90D9;
+            color: white;
+            border-color: #4A90D9;
+            box-shadow: 0 4px 12px rgba(74, 144, 217, 0.3);
+        }
+        
+        .letter-btn.reversal-example {
+            border-color: #e74c3c;
+            background: #fff5f5;
+            color: #e74c3c;
+        }
+        
+        .letter-btn.reversal-example.active {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+        
+        .divider {
+            color: #d4c4b0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .selected-display {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: #7a8a9a;
+        }
+        
+        .selected-display strong {
+            color: #2d3436;
+            font-size: 1.2rem;
+        }
+        
+        .selected-display .hint {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            display: none;
+        }
+        
+        .selected-display .hint.show {
+            display: inline;
+        }
+        
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        #testCanvas {
+            border: 3px solid #d4c4b0;
+            border-radius: 12px;
+            background: white;
+            cursor: crosshair;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            aspect-ratio: 2/1;
+            touch-action: none;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: #4A90D9;
+            color: white;
+        }
+        
+        .btn-ghost {
+            background: #f0f2f5;
+            color: #2d3436;
+        }
+        
+        .btn-ghost:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* Result Panel */
+        .result-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 5px solid #d4c4b0;
+            transition: all 0.3s;
+        }
+        
+        .result-panel.normal {
+            border-left-color: #27ae60;
+            background: #f0fff4;
+        }
+        
+        .result-panel.reversal {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+        
+        .result-panel.corrected {
+            border-left-color: #f39c12;
+            background: #fffbf0;
+        }
+        
+        .result-panel.error {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+        
+        .result-panel.waiting {
+            border-left-color: #4A90D9;
+            background: #f0f8ff;
+        }
+        
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .result-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            text-align: center;
+        }
+        
+        .result-details {
+            flex: 1;
+        }
+        
+        .result-details h3 {
+            margin: 0 0 0.3rem 0;
+            font-size: 1.2rem;
+            color: #2d3436;
+        }
+        
+        .result-details p {
+            margin: 0.2rem 0;
+            color: #555;
+            font-size: 0.95rem;
+        }
+        
+        .confidence-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #eaeaea;
+            margin-top: 0.5rem;
+            overflow: hidden;
+            max-width: 300px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            background: #4A90D9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.3rem;
+        }
+        
+        .status-badge.normal {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.reversal {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-badge.corrected {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4A90D9;
+        }
+        
+        .stat-item .number.danger {
+            color: #e74c3c;
+        }
+        
+        .stat-item .number.success {
+            color: #27ae60;
+        }
+        
+        .stat-item .number.warning {
+            color: #f39c12;
+        }
+        
+        .stat-item .label {
+            font-size: 0.8rem;
+            color: #7a8a9a;
+        }
+        
+        /* History */
+        .history {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .history h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            color: #7a8a9a;
+        }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        
+        .history-item .time {
+            color: #999;
+            font-size: 0.75rem;
+        }
+        
+        .history-empty {
+            color: #aaa;
+            text-align: center;
+            padding: 0.5rem;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 0.5rem;
+            color: #4A90D9;
+            font-weight: 600;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #eaeaea;
+            border-top: 3px solid #4A90D9;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Letter Guide */
+        .guide {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #eaeaea;
+        }
+        
+        .guide h4 {
+            margin: 0 0 0.5rem 0;
+            color: #4A90D9;
+        }
+        
+        .guide ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .guide ul li {
+            margin-bottom: 0.2rem;
+        }
+        
+        .guide ul li.reversal-warning {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        /* Keyboard shortcuts hint */
+        .shortcuts {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-top: 0.5rem;
+        }
+        
+        .shortcuts kbd {
+            background: #f0f2f5;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 0.7rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container { padding: 1rem; }
+            .letter-btn { width: 40px; height: 40px; font-size: 1rem; }
+            .result-row { flex-direction: column; align-items: flex-start; }
+            .stats { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>🔬 Letter <span>Testing</span> Tool</h1>
+        <p>Write a letter to see how YOLO classifies it (Normal / Reversal / Corrected)</p>
+    </div>
+
+    <!-- Letter Selector -->
+    <div class="letter-selector" id="letterSelector">
+        <button class="letter-btn active" data-letter="b" onclick="selectLetter('b')">b</button>
+        <button class="letter-btn" data-letter="d" onclick="selectLetter('d')">d</button>
+        <button class="letter-btn" data-letter="p" onclick="selectLetter('p')">p</button>
+        <button class="letter-btn" data-letter="q" onclick="selectLetter('q')">q</button>
+        <button class="letter-btn" data-letter="m" onclick="selectLetter('m')">m</button>
+        <button class="letter-btn" data-letter="w" onclick="selectLetter('w')">w</button>
+        <button class="letter-btn" data-letter="n" onclick="selectLetter('n')">n</button>
+        <button class="letter-btn" data-letter="u" onclick="selectLetter('u')">u</button>
+        
+        <span class="divider">|</span>
+        
+        <button class="letter-btn reversal-example" data-letter="b_rev" onclick="selectLetter('b_rev')">b̶</button>
+        <button class="letter-btn reversal-example" data-letter="d_rev" onclick="selectLetter('d_rev')">d̶</button>
+        <button class="letter-btn reversal-example" data-letter="p_rev" onclick="selectLetter('p_rev')">p̶</button>
+        <button class="letter-btn reversal-example" data-letter="q_rev" onclick="selectLetter('q_rev')">q̶</button>
+        
+        <span class="divider">|</span>
+        
+        <button class="letter-btn" data-letter="a" onclick="selectLetter('a')">a</button>
+        <button class="letter-btn" data-letter="c" onclick="selectLetter('c')">c</button>
+        <button class="letter-btn" data-letter="s" onclick="selectLetter('s')">s</button>
+        <button class="letter-btn" data-letter="e" onclick="selectLetter('e')">e</button>
+    </div>
+
+    <!-- Selected Display -->
+    <div class="selected-display">
+        Selected: <strong id="selectedLetterDisplay">b</strong>
+        <span class="hint" id="letterHint">(Try reversing this letter!)</span>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-wrapper">
+        <canvas id="testCanvas" width="600" height="300"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn btn-danger" onclick="clearCanvas()">🗑️ Clear</button>
+        <button class="btn btn-success" onclick="analyzeLetter()" id="analyzeBtn">🔍 Analyze</button>
+        <button class="btn btn-ghost" onclick="loadExample('normal')">📝 Normal</button>
+        <button class="btn btn-ghost" onclick="loadExample('reversal')">🔄 Reversal</button>
+        <button class="btn btn-ghost" onclick="resetAll()">🔄 Reset Stats</button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <span class="spinner"></span> Analyzing letter...
+    </div>
+
+    <!-- Result Panel -->
+    <div class="result-panel waiting" id="resultPanel">
+        <div class="result-row">
+            <div class="result-icon" id="resultIcon">✏️</div>
+            <div class="result-details">
+                <h3 id="resultTitle">Write a letter to test</h3>
+                <p id="resultDescription">Draw the selected letter on the canvas and click "Analyze"</p>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width:0%;"></div>
+                </div>
+                <div id="resultStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="statsContainer">
+        <div class="stat-item">
+            <div class="number" id="statTotal">0</div>
+            <div class="label">Total Tests</div>
+        </div>
+        <div class="stat-item">
+            <div class="number success" id="statNormal">0</div>
+            <div class="label">Normal ✅</div>
+        </div>
+        <div class="stat-item">
+            <div class="number danger" id="statReversal">0</div>
+            <div class="label">Reversals ⚠️</div>
+        </div>
+        <div class="stat-item">
+            <div class="number warning" id="statCorrected">0</div>
+            <div class="label">Corrected ✏️</div>
+        </div>
+        <div class="stat-item">
+            <div class="number" id="statAccuracy" style="color:#4A90D9;">0%</div>
+            <div class="label">Accuracy</div>
+        </div>
+    </div>
+
+    <!-- Letter Guide -->
+    <div class="guide" id="letterGuide">
+        <h4>📝 How to Write '<span id="guideLetter">b</span>' Correctly</h4>
+        <ul id="guideSteps">
+            <li>Start at the top line</li>
+            <li>Draw a straight line down</li>
+            <li>Go back up to the middle</li>
+            <li>Draw a circle to the right</li>
+        </ul>
+    </div>
+
+    <!-- History -->
+    <div class="history" id="historyLog">
+        <h4>📋 Test History</h4>
+        <div class="history-empty">No tests yet</div>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="shortcuts">
+        <kbd>Enter</kbd> Analyze &nbsp;|&nbsp; <kbd>C</kbd> Clear &nbsp;|&nbsp; <kbd>N</kbd> Normal Example &nbsp;|&nbsp; <kbd>R</kbd> Reversal Example
+    </div>
+</div>
+
+<script>
+    // ─── Canvas Setup ──────────────────────────────────────────────
+    const canvas = document.getElementById('testCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let selectedLetter = 'b';
+
+    // ─── Stats ──────────────────────────────────────────────────────
+    let stats = {
+        total: 0,
+        normal: 0,
+        reversal: 0,
+        corrected: 0
+    };
+
+    // ─── Letter Guides ─────────────────────────────────────────────
+    const LETTER_GUIDES = {
+        'b': ['Start at the top line', 'Draw a straight line down', 'Go back up to the middle', 'Draw a circle to the right'],
+        'd': ['Start at the middle line', 'Draw a circle going left', 'Continue straight down', 'Go back up'],
+        'p': ['Start at the middle line', 'Draw a straight line down below the line', 'Go back up', 'Draw a circle to the right'],
+        'q': ['Start at the middle line', 'Draw a circle going left', 'Continue down below the line', 'Add a curve at the bottom'],
+        'm': ['Start at the middle line', 'Draw straight down', 'Go up, make a hump', 'Go down, make another hump'],
+        'w': ['Start at the middle line', 'Go down diagonally', 'Go up diagonally', 'Repeat for the second peak'],
+        'n': ['Start at the middle line', 'Draw straight down', 'Go back up', 'Make a hump to the right'],
+        'u': ['Start at the middle line', 'Draw down curving right', 'Go back up curving right', 'Short line down'],
+        'a': ['Start at the middle line', 'Draw a circle', 'Go down on the right side', 'Add a short line at the top'],
+        'c': ['Start at the top right', 'Curve to the left', 'Continue down', 'Curve to the right at the bottom'],
+        's': ['Start at the top right', 'Curve down to the left', 'Curve back to the right', 'Finish at the bottom'],
+        'e': ['Start at the middle line', 'Draw a horizontal line to the right', 'Draw a curve up', 'Draw a curve down']
+    };
+
+    // ─── Reversal Guide ────────────────────────────────────────────
+    const REVERSAL_GUIDE = [
+        '⚠️ This letter is REVERSED!',
+        'Try writing it the other way around',
+        'Start from the correct position',
+        'Practice the correct formation below'
+    ];
+
+    // ─── Initialize Canvas ─────────────────────────────────────────
+    function initCanvas() {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
+    }
+    initCanvas();
+
+    // ─── Drawing Functions ─────────────────────────────────────────
+    function getCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let cx, cy;
+        if (e.touches) {
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
+        } else {
+            cx = e.clientX;
+            cy = e.clientY;
+        }
+        return {
+            x: Math.max(0, Math.min(canvas.width, (cx - rect.left) * scaleX)),
+            y: Math.max(0, Math.min(canvas.height, (cy - rect.top) * scaleY))
+        };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const p = getCoords(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        const p = getCoords(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    });
+
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const p = getCoords(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isDrawing) return;
+        const p = getCoords(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    });
+
+    canvas.addEventListener('touchend', () => { isDrawing = false; });
+
+    // ─── Letter Selection ──────────────────────────────────────────
+    function selectLetter(letter) {
+        selectedLetter = letter;
+        
+        document.querySelectorAll('.letter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.letter === letter) {
+                btn.classList.add('active');
+            }
+        });
+
+        const display = document.getElementById('selectedLetterDisplay');
+        const hint = document.getElementById('letterHint');
+        const guideLetter = document.getElementById('guideLetter');
+        const guideSteps = document.getElementById('guideSteps');
+        
+        if (letter.endsWith('_rev')) {
+            const baseLetter = letter.replace('_rev', '');
+            display.textContent = baseLetter + ' (reversed)';
+            hint.classList.add('show');
+            guideLetter.textContent = baseLetter + ' (reversed)';
+            guideSteps.innerHTML = REVERSAL_GUIDE.map(s => 
+                `<li class="reversal-warning">${s}</li>`
+            ).join('');
+        } else {
+            display.textContent = letter;
+            hint.classList.remove('show');
+            guideLetter.textContent = letter;
+            const steps = LETTER_GUIDES[letter] || ['Draw the letter clearly', 'Use dark ink', 'Keep it simple'];
+            guideSteps.innerHTML = steps.map(s => `<li>${s}</li>`).join('');
+        }
+
+        clearCanvas();
+        resetResult();
+    }
+
+    // ─── Clear Canvas ──────────────────────────────────────────────
+    function clearCanvas() {
+        initCanvas();
+    }
+
+    // ─── Load Example ──────────────────────────────────────────────
+    function loadExample(type) {
+        clearCanvas();
+        ctx.font = '180px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        let letter = selectedLetter.replace('_rev', '');
+        
+        if (type === 'reversal') {
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2);
+            ctx.scale(-1, 1);
+            ctx.fillStyle = '#000000';
+            ctx.fillText(letter, 0, 10);
+            ctx.restore();
+            showResult('reversal', '🔄', 'Reversal Example Loaded', 
+                'This is how a reversed "' + letter + '" looks. Click "Analyze" to test!', 0);
+        } else {
+            ctx.fillStyle = '#000000';
+            ctx.fillText(letter, canvas.width/2, canvas.height/2 + 10);
+            showResult('waiting', '📝', 'Normal Example Loaded', 
+                'This is how a normal "' + letter + '" looks. Click "Analyze" to test!', 0);
+        }
+    }
+
+    // ─── Reset Result ──────────────────────────────────────────────
+    function resetResult() {
+        document.getElementById('resultPanel').className = 'result-panel waiting';
+        document.getElementById('resultIcon').textContent = '✏️';
+        document.getElementById('resultTitle').textContent = 'Write a letter to test';
+        document.getElementById('resultDescription').textContent = 'Draw the selected letter and click "Analyze"';
+        document.getElementById('confidenceFill').style.width = '0%';
+        document.getElementById('resultStatus').innerHTML = '';
+    }
+
+    // ─── Show Result ──────────────────────────────────────────────
+    function showResult(type, icon, title, description, confidence) {
+        const panel = document.getElementById('resultPanel');
+        panel.className = 'result-panel ' + type;
+        document.getElementById('resultIcon').textContent = icon;
+        document.getElementById('resultTitle').textContent = title;
+        document.getElementById('resultDescription').textContent = description;
+        
+        const fill = document.getElementById('confidenceFill');
+        fill.style.width = confidence + '%';
+        fill.style.background = confidence > 50 ? '#e74c3c' : '#27ae60';
+    }
+
+    // ─── Analyze Letter ────────────────────────────────────────────
+    async function analyzeLetter() {
+        // Check if canvas is blank
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        let darkPixels = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+            if (brightness < 128) darkPixels++;
+        }
+        const ratio = darkPixels / (canvas.width * canvas.height);
+        
+        if (ratio < 0.005) {
+            showResult('error', '✏️', 'Canvas is Empty!', 
+                'Please write the letter "' + selectedLetter.replace('_rev', '') + '" on the canvas first.', 0);
+            return;
+        }
+
+        // Show loading
+        document.getElementById('loading').classList.add('show');
+        document.getElementById('analyzeBtn').disabled = true;
+
+        // Convert canvas to blob
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        
+        // For standalone testing, we need to send to your Flask server
+        // This assumes your Flask app is running at http://localhost:5000
+        const formData = new FormData();
+        formData.append('image', blob, 'test.png');
+        const letter = selectedLetter.replace('_rev', '');
+        formData.append('expected_word', letter);
+
+        try {
+            const response = await fetch('http://localhost:5000/predict', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('analyzeBtn').disabled = false;
+
+            if (data.error) {
+                showResult('error', '⚠️', 'Error', data.error, 0);
+                return;
+            }
+
+            // Determine classification
+            let classification = 'normal';
+            let emoji = '✅';
+            let label = 'Normal';
+            let confidence = data.dyslexia_confidence || 0;
+
+            if (data.has_dyslexia) {
+                classification = 'reversal';
+                emoji = '🔄';
+                label = 'Reversal Detected!';
+                stats.reversal++;
+                document.getElementById('statReversal').textContent = stats.reversal;
+            } else if (data.result_level === 'Incorrect Word') {
+                classification = 'error';
+                emoji = '❌';
+                label = 'Incorrect Word';
+            } else if (data.letter_details && data.letter_details.length > 0) {
+                const detail = data.letter_details[0];
+                if (detail.type === 'corrected') {
+                    classification = 'corrected';
+                    emoji = '✏️';
+                    label = 'Corrected';
+                    stats.corrected++;
+                    document.getElementById('statCorrected').textContent = stats.corrected;
+                } else {
+                    stats.normal++;
+                    document.getElementById('statNormal').textContent = stats.normal;
+                }
+            } else {
+                stats.normal++;
+                document.getElementById('statNormal').textContent = stats.normal;
+            }
+
+            stats.total++;
+            document.getElementById('statTotal').textContent = stats.total;
+
+            // Update accuracy
+            const accuracy = stats.total > 0 ? Math.round((stats.normal / stats.total) * 100) : 0;
+            document.getElementById('statAccuracy').textContent = accuracy + '%';
+
+            showResult(classification, emoji, label + ' - ' + (data.fun_feedback || 'No feedback'),
+                'Letter analyzed: "' + letter + '" | Confidence: ' + confidence + '%', confidence);
+
+            // Status badge
+            const status = document.getElementById('resultStatus');
+            const badgeClass = classification === 'reversal' ? 'reversal' : 
+                              classification === 'corrected' ? 'corrected' : 'normal';
+            status.innerHTML = `
+                <span class="status-badge ${badgeClass}">
+                    ${classification.toUpperCase()}
+                </span>
+                ${data.letter_details && data.letter_details.length > 0 ? 
+                    `Position: ${data.letter_details[0].position || 1}` : ''}
+            `;
+
+            // Add to history
+            addHistory(letter, classification, confidence);
+
+        } catch (err) {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('analyzeBtn').disabled = false;
+            console.error('Analysis error:', err);
+            
+            if (err.message.includes('Failed to fetch')) {
+                showResult('error', '⚠️', 'Connection Error', 
+                    'Make sure your Flask app is running at http://localhost:5000', 0);
+            } else {
+                showResult('error', '⚠️', 'Error', err.message || 'Unknown error occurred', 0);
+            }
+        }
+    }
+
+    // ─── History Log ──────────────────────────────────────────────
+    function addHistory(letter, classification, confidence) {
+        const log = document.getElementById('historyLog');
+        const empty = log.querySelector('.history-empty');
+        if (empty) empty.remove();
+        
+        const time = new Date().toLocaleTimeString();
+        const emoji = classification === 'reversal' ? '🔄' : 
+                     classification === 'corrected' ? '✏️' : '✅';
+        
+        const entry = document.createElement('div');
+        entry.className = 'history-item';
+        entry.innerHTML = `
+            <span>${emoji} <strong>${letter}</strong> → ${classification.toUpperCase()}</span>
+            <span class="time">${confidence}% • ${time}</span>
+        `;
+        log.appendChild(entry);
+
+        while (log.children.length > 30) {
+            log.removeChild(log.firstChild);
+        }
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // ─── Reset All Stats ──────────────────────────────────────────
+    function resetAll() {
+        stats = { total: 0, normal: 0, reversal: 0, corrected: 0 };
+        document.getElementById('statTotal').textContent = '0';
+        document.getElementById('statNormal').textContent = '0';
+        document.getElementById('statReversal').textContent = '0';
+        document.getElementById('statCorrected').textContent = '0';
+        document.getElementById('statAccuracy').textContent = '0%';
+        document.getElementById('historyLog').innerHTML = `
+            <h4>📋 Test History</h4>
+            <div class="history-empty">No tests yet</div>
+        `;
+        clearCanvas();
+        resetResult();
+    }
+
+    // ─── Keyboard Shortcuts ────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') analyzeLetter();
+        if (e.key === 'c' || e.key === 'C') clearCanvas();
+        if (e.key === 'n' || e.key === 'N') loadExample('normal');
+        if (e.key === 'r' || e.key === 'R') loadExample('reversal');
+        
+        const letters = ['b','d','p','q','m','w','n','u','a','c','s','e'];
+        if (letters.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+            selectLetter(e.key);
+        }
+    });
+
+    // ─── Initialize ────────────────────────────────────────────────
+    selectLetter('b');
+</script>
+
+</body>
+</html>
