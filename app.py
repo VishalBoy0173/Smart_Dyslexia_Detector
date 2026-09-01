@@ -18,6 +18,25 @@ import io
 import re
 from werkzeug.security import generate_password_hash
 
+import cv2
+import numpy as np
+import os
+import json
+import random
+from datetime import datetime
+from functools import wraps
+from difflib import SequenceMatcher
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_file
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+import mysql.connector
+from spellchecker import SpellChecker
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas as pdf_canvas
+import io
+import re
+
 # ─── Flask Setup ─────────────────
 app = Flask(__name__)
 app.secret_key = 'smart-dyslexia-detector-secret-key-2025'
@@ -544,9 +563,29 @@ def is_only_reversal_difference(written, expected):
                 return False
     return True
 
-
 def analyze_single_word(image_path, expected_word, source='upload'):
+    """
+    Main dyslexia detection function.
+    
+    Flow:
+    1. Load and preprocess image
+    2. OCR reads the word (identity)
+    3. RUN YOLO on the DETECTED word (what the user actually wrote)
+    4. Compare with expected word
+    5. Return results with transparency including 'detected' field
+    
+    Args:
+        image_path: Path to the uploaded image
+        expected_word: The word the user was supposed to write
+        source: 'upload' or 'canvas' (affects confidence threshold)
+    
+    Returns:
+        Dict with analysis results including transparency data
+    """
     try:
+        # ======================================================================
+        # STEP 1: Load Image
+        # ======================================================================
         original_img = cv2.imread(image_path)
         if original_img is None:
             return {
@@ -559,10 +598,12 @@ def analyze_single_word(image_path, expected_word, source='upload'):
                 'reversal_details': [],
                 'letter_details': [],
                 'fun_feedback': '📷 No image found. Please upload a photo!',
-                'method': 'no_image'
+                'method': 'no_image',
+                'result_level': 'Error',
+                'show_letter_table': False
             }
 
-        # Handle RGBA transparency
+        # Handle RGBA transparency (for canvas images)
         if len(original_img.shape) == 3 and original_img.shape[2] == 4:
             white_bg = np.ones((original_img.shape[0], original_img.shape[1], 3), dtype=np.uint8) * 255
             alpha = original_img[:, :, 3] / 255.0
@@ -570,7 +611,7 @@ def analyze_single_word(image_path, expected_word, source='upload'):
                 white_bg[:, :, c] = (original_img[:, :, c] * alpha + white_bg[:, :, c] * (1 - alpha))
             original_img = white_bg
 
-        # Resize
+        # Resize for better processing
         h, w = original_img.shape[:2]
         if max(h, w) > 1000:
             scale = 800 / max(h, w)
@@ -584,99 +625,265 @@ def analyze_single_word(image_path, expected_word, source='upload'):
         print(f"🔍 WORD: '{expected_word}'")
         print(f"{'='*60}")
 
-        # ── OCR (only for reference, not for early decision) ──
+        # ======================================================================
+        # STEP 2: OCR - What word did the user actually write?
+        # ======================================================================
         written_word, ocr_confidence = ocr_read_raw(original_img)
-        ocr_similarity = SequenceMatcher(None, written_word or '', expected_word).ratio() if written_word else 0.0
+        
+        # Convert to Python native types (JSON serialization fix)
+        ocr_confidence = float(ocr_confidence) if ocr_confidence is not None else 0.0
+        ocr_similarity = float(SequenceMatcher(None, written_word or '', expected_word).ratio()) if written_word else 0.0
+        
         print(f"   OCR result: '{written_word}' (conf: {ocr_confidence:.0f}%, similarity: {ocr_similarity:.2f})")
 
-        # ── YOLO (always runs) ─────────────────────────────────
-        print("🧠 YOLO visual letter classification (primary detector)...")
-        threshold = 0.4 if source == 'upload' else 0.65
-        letters_found, reversals, letter_details = classify_letters_with_yolo(original_img, expected_word, threshold)
+        # Store OCR data for transparency display
+        ocr_data = {
+            'text': str(written_word or ''),
+            'confidence': float(round(ocr_confidence, 1)),
+            'similarity': float(round(ocr_similarity, 2)),
+            'is_trustworthy': bool(ocr_confidence >= 30)
+        }
 
+        # ======================================================================
+        # STEP 3: Determine which word to analyze with YOLO
+        # ======================================================================
+        # We ALWAYS analyze the DETECTED word (what the user actually wrote)
+        # Because we want to check THEIR writing for dyslexia patterns
+        #
+        # However, if OCR confidence is very low, we may not trust the detected word
+        # In that case, we use the expected word but warn the user
+        
+        use_detected_word = False
+        analysis_word = expected_word  # Default to expected word
+        
+        if written_word and ocr_confidence >= 30:
+            # OCR is trustworthy - use the detected word
+            use_detected_word = True
+            analysis_word = written_word.lower()
+            print(f"   ✅ Using DETECTED word for analysis: '{analysis_word}'")
+        elif written_word and 20 <= ocr_confidence < 30:
+            # OCR is partially trustworthy - use detected word but warn
+            use_detected_word = True
+            analysis_word = written_word.lower()
+            print(f"   ⚠️ Using DETECTED word with low confidence: '{analysis_word}'")
+        elif written_word and ocr_confidence < 20:
+            # OCR is very unreliable - use expected word
+            use_detected_word = False
+            analysis_word = expected_word
+            print(f"   ⚠️ OCR confidence too low ({ocr_confidence:.0f}%) - using EXPECTED word for analysis")
+        else:
+            # No OCR result - use expected word
+            analysis_word = expected_word
+            print(f"   ⚠️ No OCR result - using EXPECTED word for analysis")
+
+        # ======================================================================
+        # STEP 4: RUN YOLO on the ANALYSIS word
+        # ======================================================================
+        print(f"🧠 Running YOLO on: '{analysis_word}'")
+        
+        # Set threshold based on source
+        threshold = 0.4 if source == 'upload' else 0.65
+        
+        # Run YOLO classification on the analysis word
+        letters_found, reversals, letter_details = classify_letters_with_yolo(
+            original_img, 
+            analysis_word,  # ← The word we're analyzing (detected OR expected)
+            threshold
+        )
+
+        # Check if any letters were found
         if not letters_found:
             return {
-                'expected_word': expected_word,
+                'expected_word': str(expected_word),
+                'written_word': str(written_word or ''),
+                'analysis_word': str(analysis_word),
                 'is_correct': False,
                 'has_dyslexia': False,
                 'dyslexia_confidence': 0,
                 'reversal_details': [],
                 'letter_details': [],
+                'ocr_data': ocr_data,
                 'fun_feedback': '🤔 I could not see any letters. Try writing larger with dark ink!',
                 'method': 'yolo_no_segments',
-                'result_level': 'Cannot Read'
+                'result_level': 'Cannot Read',
+                'show_letter_table': False,
+                'word_mismatch': bool(written_word and written_word.lower() != expected_word)
             }
 
-        count_ratio = len(letters_found) / max(len(expected_word), 1)
+        # Check if enough letters were detected (at least 40%)
+        count_ratio = len(letters_found) / max(len(analysis_word), 1)
         if count_ratio < 0.4:
             return {
-                'expected_word': expected_word,
+                'expected_word': str(expected_word),
+                'written_word': str(written_word or ''),
+                'analysis_word': str(analysis_word),
                 'is_correct': False,
                 'has_dyslexia': False,
                 'dyslexia_confidence': 0,
                 'reversal_details': [],
                 'letter_details': letter_details,
-                'fun_feedback': f'🤔 I only see {len(letters_found)} of {len(expected_word)} letters. Write each letter clearly with small gaps!',
+                'ocr_data': ocr_data,
+                'fun_feedback': f'🤔 I only see {len(letters_found)} of {len(analysis_word)} letters. Write each letter clearly with small gaps!',
                 'method': 'yolo_partial',
-                'result_level': 'Cannot Read Clearly'
+                'result_level': 'Cannot Read Clearly',
+                'show_letter_table': True,
+                'word_mismatch': bool(written_word and written_word.lower() != expected_word)
             }
 
-        # ── NEW: Decision logic – YOLO reversals take priority ──
-        has_dyslexia = len(reversals) > 0
-        total_letters_analysed = len(letter_details)
-        dyslexia_count = len(reversals)
-        dyslexia_confidence = round((dyslexia_count / max(total_letters_analysed, 1)) * 100, 1)
+        # ======================================================================
+        # STEP 5: Filter Reversals - ONLY Valid Dyslexia Reversal Pairs
+        # ======================================================================
+        VALID_REVERSAL_PAIRS = ['b', 'd', 'p', 'q', 'm', 'w', 'n', 'u']
+        
+        valid_reversals = []
+        for r in reversals:
+            expected_letter = r.get('expected', '').lower()
+            if expected_letter in VALID_REVERSAL_PAIRS:
+                valid_reversals.append(r)
+            else:
+                print(f"   ⚠️ Ignoring reversal for '{expected_letter}' - not in valid reversal pairs")
+                for detail in letter_details:
+                    if detail.get('position') == r.get('position'):
+                        detail['ignored_reversal'] = True
 
+        # ======================================================================
+        # STEP 6: Calculate Results
+        # ======================================================================
+        has_dyslexia = bool(len(valid_reversals) > 0)
+        total_letters_analysed = int(len(letter_details))
+        dyslexia_count = int(len(valid_reversals))
+        dyslexia_confidence = float(round((dyslexia_count / max(total_letters_analysed, 1)) * 100, 1))
+
+        # Check if word matches expected
+        word_matches = bool(written_word and written_word.lower() == expected_word)
+        word_mismatch = bool(written_word and not word_matches)
+
+        is_correct = False
+        result_level = ''
+        fun_feedback = ''
+
+        # ── Build the feedback message ──
+        
+        # Part 1: Word mismatch warning (if applicable)
+        word_warning = ""
+        if word_mismatch:
+            word_warning = f"📝 You wrote '{written_word}' but expected '{expected_word}'. "
+
+        # Part 2: Dyslexia detection result
         if has_dyslexia:
-            # YOLO found reversals → Dyslexia Detected
-            reversal_letters = [r['expected'] for r in reversals if r.get('type') == 'reversal']
-            fun_feedback = random.choice([
-                f'🔍 The letter "{reversal_letters[0]}" looks reversed. Let\'s practice!',
-                f'🔄 I spotted reversed letters – keep working on it!'
-            ]) if reversal_letters else '🔍 Reversal patterns detected.'
             result_level = 'Dyslexia Detected'
             is_correct = False
+            reversal_letters = [r['expected'] for r in valid_reversals]
+            
+            if len(valid_reversals) == 1:
+                dyslexia_msg = f"🔍 Found 1 reversed letter: '{reversal_letters[0]}'."
+            else:
+                dyslexia_msg = f"🔍 Found {len(valid_reversals)} reversed letters: {', '.join(reversal_letters)}."
+            
+            dyslexia_msg += f" (Confidence: {dyslexia_confidence}%)"
+            
+            # Combine messages
+            if word_mismatch:
+                fun_feedback = word_warning + " " + dyslexia_msg + " Practice writing these letters correctly!"
+            else:
+                fun_feedback = dyslexia_msg + " Practice writing these letters correctly!"
                 
         else:
-            # No reversals – now check if the word is wrong or correct
-            if written_word and written_word != expected_word:
-                fun_feedback = f"The word you wrote doesn't match '{expected_word}'. Please write the correct word carefully."
-                result_level = 'Not Expected Word'
+            # No reversals found
+            if word_mismatch:
+                result_level = 'Incorrect Word - No Dyslexia'
                 is_correct = False
+                fun_feedback = word_warning + "✅ No dyslexia patterns detected in your writing. Try writing the correct word next time!"
             else:
-                fun_feedback = random.choice([
-                    '🌟 All letters look correct!',
-                    '⭐ Great writing — no reversals found!'
-                ])
                 result_level = 'No Dyslexia'
                 is_correct = True
+                fun_feedback = random.choice([
+                    '🌟 All letters look correct! Great writing!',
+                    '⭐ Perfect! No reversals found. Keep up the good work!'
+                ])
 
+        # ======================================================================
+        # STEP 7: Determine if we should show the letter table
+        # ======================================================================
+        show_table = bool(result_level not in [
+            'Cannot Read', 
+            'Cannot Read Clearly', 
+            'Error'
+        ])
+
+        # ======================================================================
+        # STEP 8: ENHANCE LETTER DETAILS WITH 'detected' FIELD
+        # ======================================================================
+        # This is the key addition - adds the 'detected' field to each letter
+        # so the frontend can display what the system actually detected
+        analysis_chars = list(analysis_word)
+        enhanced_letter_details = []
+        
+        for idx, detail in enumerate(letter_details):
+            # Get the detected character from the analysis word
+            detected_char = analysis_chars[idx] if idx < len(analysis_chars) else '?'
+            
+            # Create enhanced detail with detected field
+            enhanced_detail = {
+                'position': detail.get('position', idx + 1),
+                'expected': detail.get('expected', '?'),
+                'detected': detected_char,  # ← NEW: What the system actually detected
+                'yolo_class': detail.get('yolo_class', 'unknown'),
+                'confidence': detail.get('confidence', 0),
+                'type': detail.get('type', 'normal'),
+            }
+            
+            # Copy over reversal confidence if present
+            if detail.get('type') == 'reversal':
+                enhanced_detail['reversal_confidence'] = detail.get('reversal_confidence', 0)
+            elif detail.get('type') == 'corrected':
+                enhanced_detail['corrected_confidence'] = detail.get('corrected_confidence', 0)
+            
+            enhanced_letter_details.append(enhanced_detail)
+
+        # ======================================================================
+        # STEP 9: Print Summary
+        # ======================================================================
         print(f"\n📊 YOLO Summary:")
-        print(f"   Letters analysed : {total_letters_analysed}")
-        print(f"   Reversals found  : {dyslexia_count}")
+        print(f"   Analysis word  : '{analysis_word}'")
+        print(f"   Letters analysed: {total_letters_analysed}")
+        print(f"   Reversals found : {dyslexia_count}")
+        print(f"   Valid reversals : {len(valid_reversals)}")
         print(f"   Dyslexia confidence: {dyslexia_confidence}%")
+        print(f"   Word matches    : {word_matches}")
         print(f"   Result: {result_level}")
         print(f"{'='*60}\n")
 
+        # ======================================================================
+        # STEP 10: Return Results with enhanced letter details
+        # ======================================================================
         return {
-            'expected_word': expected_word,
-            'is_correct': is_correct,
-            'has_dyslexia': has_dyslexia,
-            'dyslexia_confidence': dyslexia_confidence,
-            'reversal_details': reversals,
-            'letter_details': letter_details,
-            'total_letters': total_letters_analysed,
-            'dyslexia_count': dyslexia_count,
+            'expected_word': str(expected_word),
+            'written_word': str(written_word or ''),
+            'analysis_word': str(analysis_word),
+            'is_correct': bool(is_correct),
+            'has_dyslexia': bool(has_dyslexia),
+            'dyslexia_confidence': float(dyslexia_confidence),
+            'reversal_details': valid_reversals,
+            'letter_details': enhanced_letter_details,  # ← ENHANCED WITH 'detected' FIELD
+            'total_letters': int(total_letters_analysed),
+            'dyslexia_count': int(dyslexia_count),
+            'ocr_data': ocr_data,
             'method': 'yolo_primary',
-            'result_level': result_level
+            'result_level': str(result_level),
+            'fun_feedback': str(fun_feedback),
+            'show_letter_table': show_table,
+            'word_mismatch': bool(word_mismatch)
         }
 
     except Exception as e:
         print(f"❌ Error in analyze_single_word: {e}")
         import traceback
         traceback.print_exc()
-        return {'error': str(e)}
-
+        return {
+            'error': str(e),
+            'show_letter_table': False
+        }
 # ═══════════════ ROUTES ═══════════════
 
 @app.route('/')

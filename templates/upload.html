@@ -46,6 +46,7 @@
                     </div>
                 </div>
                 <input type="hidden" id="expectedWord" value="dog">
+
                 <div class="upload-zone mt-2" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                     <div class="upload-zone-icon">📁</div>
                     <div class="upload-zone-title">Click to upload or drag and drop</div>
@@ -70,23 +71,64 @@
                     <div class="result-message" id="resultMessage"></div>
                     <button class="btn btn-primary" onclick="newWordAndReset()">🔄 Try Another Word</button>
                 </div>
-                <div id="letterDetails" style="margin-top: 2rem; display: none;">
-                
-                    <h4>📝 Per‑Letter Analysis</h4>
-                <div style="overflow-x: auto; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
-                    <table style="width:100%; border-collapse: collapse; background: white;">
-                        <thead style="background: var(--primary); color: white;">
-                            <tr>
-                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Position</th>
-                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Expected</th>
-                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Classified As</th>
-                                <th style="padding: 0.6rem 1rem; text-align: center; font-size: 0.85rem;">Confidence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="letterDetailsBody"></tbody>
-                    </table>
+
+                <!-- ========== TRANSPARENCY SECTION ========== -->
+                <div id="transparencySection" style="display: none; margin-top: 2rem;">
+                    <div class="card" style="padding: 1.5rem;">
+                        <h3 style="margin-bottom: 1rem;">🔍 How the System Analyzed Your Writing</h3>
+                        
+                        <!-- OCR Section -->
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <h4 style="margin-bottom: 0.5rem;">📝 What OCR Detected</h4>
+                            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                                <div>
+                                    <span style="font-weight: 600;">Detected Word:</span>
+                                    <span id="ocrTextDisplay" style="font-family: monospace; font-size: 1.2rem; font-weight: 700;"></span>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600;">Confidence:</span>
+                                    <span id="ocrConfidenceDisplay"></span>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600;">Expected:</span>
+                                    <span id="ocrExpectedDisplay" style="font-family: monospace; font-size: 1.2rem; font-weight: 700;"></span>
+                                </div>
+                            </div>
+                            <div id="ocrWarning" style="margin-top: 0.5rem; padding: 0.5rem; background: #fff3cd; border-radius: 4px; display: none;">
+                                ⚠️ <span id="ocrWarningText"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- YOLO Per-Letter Analysis with Detected Column -->
+                        <div>
+                            <h4 style="margin-bottom: 0.5rem;">🧠 Letter-by-Letter Analysis (YOLOv11)</h4>
+                            <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #e0e0e0;">
+                                <table style="width:100%; border-collapse: collapse; background: white; font-size: 0.95rem;">
+                                    <thead style="background: var(--primary); color: white;">
+                                        <tr>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Position</th>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Expected</th>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Detected</th>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Classification</th>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Confidence</th>
+                                            <th style="padding: 0.6rem 1rem; text-align: center;">Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transparencyTableBody">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Summary -->
+                        <div id="transparencySummary" style="margin-top: 1rem; padding: 1rem; background: var(--primary-bg); border-radius: 8px; border-left: 4px solid var(--primary);">
+                            <p id="transparencySummaryText" style="margin: 0; font-weight: 600;"></p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+                <!-- ========== END TRANSPARENCY SECTION ========== -->
+
                 <!-- Audio elements for feedback -->
                 <audio id="soundCorrect" preload="auto">
                     <source src="{{ url_for('static', filename='sounds/correct.mp3') }}" type="audio/mpeg">
@@ -125,12 +167,10 @@
 
     function changeLevel(level, event) {
         currentLevel = level;
-        // Update active state on buttons
         document.querySelectorAll('.level-pill').forEach(btn => btn.classList.remove('active'));
         if (event && event.target) {
             event.target.classList.add('active');
         } else {
-            // Fallback: find button with matching data-level
             document.querySelectorAll('.level-pill').forEach(btn => {
                 if (btn.getAttribute('data-level') === level) {
                     btn.classList.add('active');
@@ -145,14 +185,6 @@
         newWord();
     }
 
-    function toggleLanguage() {
-        currentLang = currentLang === 'english' ? 'malay' : 'english';
-        const langBtn = document.getElementById('langBtn');
-        langBtn.textContent = currentLang === 'english' ? '🇬🇧 English' : '🇲🇾 Malay';
-        document.getElementById('currentLang').value = currentLang;
-        newWord();
-    }
-
     async function fetchNewWord() {
         try {
             let url = '/api/get_word?level=' + currentLevel;
@@ -164,7 +196,6 @@
             document.getElementById('expectedWord').value = data.word;
         } catch (err) {
             console.error('Error fetching word:', err);
-            // Fallback to local word list
             const themeWords = wordLists[currentLevel] && wordLists[currentLevel][currentTheme] 
                 ? wordLists[currentLevel][currentTheme] 
                 : wordLists[currentLevel].default;
@@ -178,6 +209,7 @@
         fetchNewWord();
         removeImage();
         hideResult();
+        hideTransparency();
     }
 
     function newWordAndReset() {
@@ -190,6 +222,136 @@
         resultBox.style.display = 'none';
         resultBox.className = 'result-box';
         document.getElementById('starProgress').style.display = 'none';
+    }
+
+    function hideTransparency() {
+        document.getElementById('transparencySection').style.display = 'none';
+    }
+
+    // ========== TRANSPARENCY DISPLAY FUNCTION ==========
+    function displayTransparency(data) {
+        console.log('📊 Displaying transparency data:', data);
+        
+        if (!data.ocr_data) {
+            console.warn('No OCR data available');
+            return;
+        }
+        
+        const ocr = data.ocr_data;
+        
+        // Show OCR info
+        document.getElementById('ocrTextDisplay').textContent = ocr.text || '(not detected)';
+        document.getElementById('ocrExpectedDisplay').textContent = data.expected_word || '?';
+        
+        const confEl = document.getElementById('ocrConfidenceDisplay');
+        const confValue = ocr.confidence || 0;
+        confEl.textContent = confValue > 0 ? `${confValue}%` : 'Not detected';
+        confEl.style.color = confValue >= 70 ? '#27ae60' : (confValue >= 30 ? '#f39c12' : '#e74c3c');
+        
+        // Show warning if low confidence
+        const warningEl = document.getElementById('ocrWarning');
+        if (confValue < 30 && confValue > 0) {
+            warningEl.style.display = 'block';
+            document.getElementById('ocrWarningText').textContent = 
+                `Low confidence (${confValue}%). The handwriting may be unclear.`;
+        } else if (!ocr.text) {
+            warningEl.style.display = 'block';
+            document.getElementById('ocrWarningText').textContent = 
+                'No text detected. Please make sure your handwriting is clear and well-lit.';
+        } else {
+            warningEl.style.display = 'none';
+        }
+        
+        // Populate YOLO table with Detected column
+        const tableBody = document.getElementById('transparencyTableBody');
+        tableBody.innerHTML = '';
+        
+        if (data.letter_details && data.letter_details.length > 0) {
+            data.letter_details.forEach(detail => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #eaeaea';
+                
+                const isReversal = detail.type === 'reversal';
+                const isCorrected = detail.type === 'corrected';
+                const isNormal = detail.type === 'normal';
+                const ignored = detail.ignored_reversal || false;
+                
+                // Get the detected value
+                const detected = detail.detected || detail.expected || '?';
+                
+                let label, color, emoji;
+                if (isReversal && !ignored) {
+                    label = '🔄 Reversal';
+                    color = '#e74c3c';
+                    emoji = '⚠️';
+                } else if (isReversal && ignored) {
+                    label = '🔄 Reversal (Ignored)';
+                    color = '#f39c12';
+                    emoji = 'ℹ️';
+                } else if (isCorrected) {
+                    label = '✏️ Corrected';
+                    color = '#3498db';
+                    emoji = '✅';
+                } else if (isNormal) {
+                    label = '✅ Normal';
+                    color = '#27ae60';
+                    emoji = '✅';
+                } else {
+                    label = '❓ Unknown';
+                    color = '#95a5a6';
+                    emoji = '❓';
+                }
+                
+                const confValue = detail.confidence || detail.reversal_confidence || detail.corrected_confidence || 0;
+                
+                row.innerHTML = `
+                    <td style="padding: 0.5rem 1rem; text-align: center; font-weight: 600;">${detail.position}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center; font-weight: 700; font-size: 1.2rem;">${detail.expected}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center; font-weight: 700; font-size: 1.2rem; color: #3498db;">${detected}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center;">${label}</td>
+                    <td style="padding: 0.5rem 1rem; text-align: center;">
+                        <span style="background: ${confValue > 70 ? '#d4edda' : (confValue > 40 ? '#fff3cd' : '#f8d7da')}; 
+                                     padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 600;">
+                            ${confValue}%
+                        </span>
+                    </td>
+                    <td style="padding: 0.5rem 1rem; text-align: center; color: ${color}; font-weight: 700;">
+                        ${emoji} ${label}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="padding: 1rem; text-align: center; color: #95a5a6;">
+                        No letter details available
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Show summary
+        const summaryEl = document.getElementById('transparencySummaryText');
+        if (data.has_dyslexia) {
+            const reversalLetters = data.reversal_details ? data.reversal_details.map(r => r.expected).join(', ') : '';
+            summaryEl.innerHTML = `
+                🔴 <strong>Dyslexia Detected</strong> - ${data.dyslexia_count || 0} out of ${data.total_letters || 0} letters showed reversal patterns. 
+                Reversed letters: ${reversalLetters || 'N/A'}. Confidence: ${data.dyslexia_confidence || 0}%
+            `;
+        } else if (data.is_correct) {
+            summaryEl.innerHTML = `✅ <strong>All Correct!</strong> No reversal patterns detected. Great job!`;
+        } else if (data.result_level === 'Incorrect Word') {
+            summaryEl.innerHTML = `📝 <strong>Incorrect Word</strong> - You wrote "${ocr.text || '?'}" but expected "${data.expected_word || '?'}"`;
+        } else if (data.result_level === 'Unclear Image' || data.result_level === 'Unclear - Possible Dyslexia') {
+            summaryEl.innerHTML = `⚠️ <strong>${data.result_level}</strong> - ${data.fun_feedback || 'Please write more clearly and try again.'}`;
+        } else {
+            summaryEl.innerHTML = `ℹ️ <strong>Analysis Complete</strong> - ${data.total_letters || 0} letters analyzed.`;
+        }
+        
+        // Show the transparency section
+        document.getElementById('transparencySection').style.display = 'block';
+        document.getElementById('transparencySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function playSound(type) {
@@ -216,7 +378,6 @@
         document.getElementById('resultTitle').textContent = title;
         document.getElementById('resultMessage').textContent = message;
         
-        // Play appropriate sound
         if (type === 'correct') {
             playSound('correct');
         } else if (type === 'dyslexia') {
@@ -275,14 +436,12 @@
     }
 
     function previewFile(file) {
-        // Validate file type
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (!validTypes.includes(file.type)) {
             alert('Please upload a valid image file (PNG, JPG, JPEG, WEBP)');
             return;
         }
         
-        // Validate file size (10MB max)
         if (file.size > 10 * 1024 * 1024) {
             alert('File is too large! Maximum size is 10MB.');
             return;
@@ -306,6 +465,7 @@
         };
         reader.readAsDataURL(file);
         hideResult();
+        hideTransparency();
     }
 
     function removeImage() {
@@ -316,73 +476,85 @@
         document.getElementById('analyzeBtn').disabled = true;
         document.getElementById('removeBtn').style.display = 'none';
         hideResult();
+        hideTransparency();
     }
 
-async function submitUpload() {
-    if (!selectedFile) {
-        alert('Please select an image first!');
-        return;
-    }
-    
-    const expectedWord = document.getElementById('expectedWord').value.trim();
-    if (!expectedWord) {
-        alert('No word selected! Please refresh the page.');
-        return;
-    }
-    
-    const loadingDiv = document.getElementById('loading');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    
-    loadingDiv.classList.add('show');
-    analyzeBtn.disabled = true;
-    hideResult();
-    
-    const formData = new FormData();
-    formData.append('image', selectedFile);
-    formData.append('expected_word', expectedWord);
-    
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-        
-        const response = await fetch('/predict', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        const data = await response.json();
-        
-        loadingDiv.classList.remove('show');
-        analyzeBtn.disabled = false;
-        
-        if (data.error) {
-            showResult('⚠️', 'Oops!', data.error, 'unclear');
+    async function submitUpload() {
+        if (!selectedFile) {
+            alert('Please select an image first!');
             return;
         }
         
-        if (data.is_correct) {
-            showResult('🌟', 'Perfect!', data.fun_feedback, 'correct');
-        } else if (data.has_dyslexia) {
-            showResult('🔍', 'Dyslexia Detected', data.fun_feedback, 'dyslexia');
-        } else if (data.result_level === 'Incorrect Word') {
-            showResult('❌', 'Incorrect Word', data.fun_feedback, 'wrong');
-        } else {
-            showResult('📝', 'No Dyslexia', data.fun_feedback, 'wrong');
+        const expectedWord = document.getElementById('expectedWord').value.trim();
+        if (!expectedWord) {
+            alert('No word selected! Please refresh the page.');
+            return;
         }
-    } catch (err) {
-        loadingDiv.classList.remove('show');
-        analyzeBtn.disabled = false;
-        console.error('Upload error:', err);
         
-        if (err.name === 'AbortError') {
-            showResult('⚠️', 'Timeout', 'The server is taking too long to respond. Please try again.', 'unclear');
-        } else {
-            showResult('⚠️', 'Error', 'Network error. Please check your connection and try again.', 'unclear');
+        const loadingDiv = document.getElementById('loading');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        
+        loadingDiv.classList.add('show');
+        analyzeBtn.disabled = true;
+        hideResult();
+        hideTransparency();
+        
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+        formData.append('expected_word', expectedWord);
+        formData.append('source', 'upload');
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+            
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            const data = await response.json();
+            
+            loadingDiv.classList.remove('show');
+            analyzeBtn.disabled = false;
+            
+            // ========== DISPLAY TRANSPARENCY ==========
+            if (data.ocr_data || data.letter_details) {
+                displayTransparency(data);
+            }
+            
+            // ========== DISPLAY RESULT ==========
+            if (data.error) {
+                showResult('⚠️', 'Oops!', data.error, 'unclear');
+                return;
+            }
+            
+            if (data.is_correct) {
+                showResult('🌟', 'Perfect!', data.fun_feedback, 'correct');
+            } else if (data.has_dyslexia) {
+                showResult('🔍', 'Dyslexia Detected', data.fun_feedback, 'dyslexia');
+            } else if (data.result_level === 'Incorrect Word') {
+                showResult('❌', 'Incorrect Word', data.fun_feedback, 'wrong');
+            } else if (data.result_level === 'Unclear Image' || data.result_level === 'Unclear - Possible Dyslexia') {
+                showResult('⚠️', data.result_level, data.fun_feedback, 'unclear');
+            } else {
+                showResult('📝', 'No Dyslexia', data.fun_feedback, 'wrong');
+            }
+            
+        } catch (err) {
+            loadingDiv.classList.remove('show');
+            analyzeBtn.disabled = false;
+            console.error('Upload error:', err);
+            
+            if (err.name === 'AbortError') {
+                showResult('⚠️', 'Timeout', 'The server is taking too long to respond. Please try again.', 'unclear');
+            } else {
+                showResult('⚠️', 'Error', 'Network error. Please check your connection and try again.', 'unclear');
+            }
         }
     }
-}
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
