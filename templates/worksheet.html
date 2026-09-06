@@ -227,11 +227,11 @@
 <div class="page-header" style="text-align: center; max-width: 800px; margin: 0 auto;">
     <h1>📄 Practice Worksheets</h1>
     <p style="color: var(--text-muted); max-width: 600px; margin: 0.5rem auto;">
-        Choose a theme to download a printable worksheet. Each worksheet includes <strong>Easy</strong> and <strong>Medium</strong> words for comprehensive practice!
+        Choose a theme to download a printable worksheet. Each worksheet includes <strong>dot-to-dot letter tracing</strong> for Easy and Medium words — perfect for practicing handwriting!
     </p>
 </div>
 
-<!-- Theme Cards - Animals, Food, Colors only -->
+<!-- Theme Cards -->
 <div class="worksheet-grid">
     <div class="worksheet-card animals" onclick="downloadTheme('animals')">
         <span class="icon">🐾</span>
@@ -270,10 +270,10 @@
     </div>
 </div>
 
-<!-- How to use: Worksheet -> Upload workflow -->
+<!-- How to use -->
 <div class="worksheet-flow">
     <h3>📋 How It Works</h3>
-    <p class="subtitle">Four simple steps to practice and get feedback!</p>
+    <p class="subtitle">Three simple steps to practice handwriting!</p>
     <div class="flow-steps">
         <div class="flow-step">
             <span class="step-num">1</span>
@@ -284,19 +284,13 @@
         <div class="flow-step">
             <span class="step-num">2</span>
             <span class="step-icon">✍️</span>
-            Write the words neatly
+            Trace the dot-to-dot letters
         </div>
         <span class="flow-arrow">→</span>
         <div class="flow-step">
             <span class="step-num">3</span>
-            <span class="step-icon">📸</span>
-            Take a clear photo
-        </div>
-        <span class="flow-arrow">→</span>
-        <div class="flow-step">
-            <span class="step-num">4</span>
-            <span class="step-icon">📤</span>
-            Upload for analysis
+            <span class="step-icon">📝</span>
+            Practice writing on your own
         </div>
     </div>
     <div style="margin-top: 1.5rem;">
@@ -306,17 +300,15 @@
     </div>
 </div>
 
-<!-- Info Box -->
 <div class="info-box">
     <p>
-        💡 <strong>Tip:</strong> Each worksheet contains <strong>16 words</strong> (8 Easy + 8 Medium). 
-        Write them clearly on paper, take a photo, and upload it to get instant feedback on each letter!
+        💡 <strong>Tip:</strong> Each worksheet contains <strong>16 words</strong> (8 Easy + 8 Medium) with <strong>dot-to-dot letter tracing</strong>. 
+        Follow the dots to learn proper letter formation, then practice writing on your own!
     </p>
 </div>
 
 <script>
     function downloadTheme(theme) {
-        // Show loading feedback
         const cards = document.querySelectorAll('.worksheet-card');
         cards.forEach(card => {
             if (card.classList.contains(theme)) {
@@ -326,13 +318,9 @@
             }
         });
 
-        // Build URL - NO level or lang parameters needed!
         const url = `/api/worksheet?theme=${theme}`;
-        
-        // Download the worksheet
         window.location.href = url;
         
-        // Reset after a moment
         setTimeout(() => {
             cards.forEach(card => {
                 card.style.opacity = '1';
@@ -341,20 +329,14 @@
         }, 3000);
     }
 
-    // Keyboard shortcut: press number keys 1, 2, 3 for quick download
     document.addEventListener('keydown', function(e) {
-        const keyMap = {
-            '1': 'animals',
-            '2': 'food',
-            '3': 'colors'
-        };
+        const keyMap = {'1': 'animals', '2': 'food', '3': 'colors'};
         if (e.key in keyMap) {
             e.preventDefault();
             downloadTheme(keyMap[e.key]);
         }
     });
 
-    // Log available shortcuts
     console.log('💡 Keyboard shortcuts: Press 1=Animals, 2=Food, 3=Colors');
 </script>
 {% endblock %}

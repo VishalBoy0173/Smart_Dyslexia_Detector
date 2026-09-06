@@ -1,41 +1,24 @@
+# Remove the duplicate import blocks - keep only ONE set:
 import os
 import json
 import random
+import io
+import re
 from datetime import datetime
 from functools import wraps
 from difflib import SequenceMatcher
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_file
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-import mysql.connector
-import cv2
-import numpy as np
-from spellchecker import SpellChecker
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas as pdf_canvas
-import io
-import re
-from werkzeug.security import generate_password_hash
+from collections import Counter
 
-import cv2
-import numpy as np
-import os
-import json
-import random
-from datetime import datetime
-from functools import wraps
-from difflib import SequenceMatcher
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import mysql.connector
+import cv2
+import numpy as np
 from spellchecker import SpellChecker
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas as pdf_canvas
-import io
-import re
 
 # ─── Flask Setup ─────────────────
 app = Flask(__name__)
@@ -118,16 +101,16 @@ OCR_CONFUSIONS = {
 # ─── Word Lists ───────────────────────────────────────────────
 WORD_LISTS = {
     'easy': {
-        'default': ['dog'],
-        'animals': ['dog'],
-        'food': ['egg'],
-        'colors': ['red']
+        'default': ['dog', 'cat', 'sun', 'red', 'egg', 'ant', 'bee', 'cow'],
+        'animals': ['dog', 'cat', 'ant', 'bee', 'cow', 'pig', 'hen', 'duck'],
+        'food': ['egg', 'jam', 'ham', 'pie', 'milk', 'bun', 'rice', 'corn'],
+        'colors': ['red', 'blue', 'pink', 'gold', 'gray', 'lime', 'beige', 'plum']
     },
     'medium': {
-        'default': ['rabbit'],
-        'animals': ['rabbit'],
-        'food': ['apple'],
-        'colors': ['purple']
+        'default': ['rabbit', 'apple', 'purple', 'river', 'jump', 'bird', 'brown', 'blue'],
+        'animals': ['rabbit', 'dolphin', 'penguin', 'butterfly', 'dragon', 'peacock', 'badger', 'panda'],
+        'food': ['apple', 'burger', 'pancake', 'waffle', 'donut', 'pumpkin', 'broccoli', 'cucumber'],
+        'colors': ['purple', 'bronze', 'silver', 'copper', 'maroon', 'crimson', 'indigo', 'violet']
     }
 }
 
@@ -181,109 +164,182 @@ def save_uploaded_image(file):
     file.save(filepath)
     return filepath, filename
 
+def preprocess_letter_for_model(letter_crop):
+    """
+    SIMPLE AND RELIABLE preprocessing for a single letter crop.
+    
+    This function:
+    1. Converts to grayscale
+    2. Uses Otsu's thresholding to separate ink from paper
+    3. Ensures the letter is white on black background (matching training data)
+    4. Resizes to 64x64 for YOLO
+    
+    This works for BOTH canvas (white on black) and paper (black on white) images.
+    """
+    if letter_crop is None:
+        return None
+    
+    # Step 1: Convert to grayscale
+    if len(letter_crop.shape) == 3:
+        gray = cv2.cvtColor(letter_crop, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = letter_crop.copy()
+    
+    # Step 2: Denoise lightly (removes paper texture)
+    gray = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
+    
+    # Step 3: Otsu's thresholding - automatically finds the best threshold
+    # This works for BOTH dark ink on light paper AND light ink on dark canvas
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    # Step 4: Check if the letter is actually black on white (wrong polarity)
+    # If the majority of pixels are white, we need to invert
+    white_ratio = np.sum(binary > 128) / binary.size
+    if white_ratio > 0.5:
+        # Background is white, letter is black - invert to match training data
+        binary = cv2.bitwise_not(binary)
+    
+    # Step 5: Clean up small noise
+    kernel = np.ones((2, 2), np.uint8)
+    cleaned = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, kernel)
+    
+    # Step 6: Ensure letter is white on black background (YOLO expects this)
+    # At this point, the letter is white (255) and background is black (0)
+    # This matches the synthetic dataset format
+    
+    # Step 7: Add padding to prevent cutting off the letter
+    h, w = cleaned.shape[:2]
+    pad_x = int(w * 0.2)
+    pad_y = int(h * 0.2)
+    padded = cv2.copyMakeBorder(
+        cleaned, pad_y, pad_y, pad_x, pad_x,
+        cv2.BORDER_CONSTANT, value=0  # Black padding
+    )
+    
+    # Step 8: Resize to 64x64 for YOLO
+    resized = cv2.resize(padded, (64, 64), interpolation=cv2.INTER_CUBIC)
+    
+    # Step 9: Convert to BGR (YOLO expects 3 channels)
+    result = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
+    
+    return result
 
 def convert_letter_for_model(letter_img):
-    """Preprocess a cropped letter image into the 64x64 format the YOLO model expects."""
+    """
+    SIMPLE AND RELIABLE preprocessing for YOLO.
+    White letter on black background (matches training data).
+    """
     if letter_img is None:
         return None
     if hasattr(letter_img, 'size') and letter_img.size == 0:
         return None
 
+    # Step 1: Convert to grayscale
     if len(letter_img.shape) == 3:
         letter_gray = cv2.cvtColor(letter_img, cv2.COLOR_BGR2GRAY)
     else:
         letter_gray = letter_img.copy()
 
-    # Add padding
-    h, w = letter_gray.shape[:2]
+    # Step 2: Denoise to remove noise
+    letter_gray = cv2.fastNlMeansDenoising(letter_gray, None, 10, 7, 21)
+
+    # Step 3: Otsu threshold - gets the letter shape
+    # IMPORTANT: Use THRESH_BINARY_INV so letter is white, background is black
+    _, binary = cv2.threshold(letter_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Step 4: Check if we got the polarity right
+    # If most pixels are white, something went wrong - invert
+    white_ratio = np.sum(binary > 128) / binary.size
+    if white_ratio > 0.5:
+        binary = cv2.bitwise_not(binary)
+
+    # Step 5: Clean small noise
+    kernel = np.ones((2, 2), np.uint8)
+    cleaned = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, kernel)
+
+    # Step 6: Add padding (black background)
+    h, w = cleaned.shape[:2]
     pad_x = int(w * 0.2)
     pad_y = int(h * 0.2)
-    letter_padded = cv2.copyMakeBorder(
-        letter_gray, pad_y, pad_y, pad_x, pad_x,
-        cv2.BORDER_CONSTANT, value=255
+    padded = cv2.copyMakeBorder(
+        cleaned, pad_y, pad_y, pad_x, pad_x,
+        cv2.BORDER_CONSTANT, value=0  # BLACK padding
     )
 
-    # Ensure dark ink on white background
-    letter_mean = float(np.mean(letter_padded))
-    if letter_mean > 127:
-        letter_inverted = cv2.bitwise_not(letter_padded)
-    else:
-        letter_inverted = letter_padded
+    # Step 7: Resize to 64x64 for YOLO
+    resized = cv2.resize(padded, (64, 64), interpolation=cv2.INTER_CUBIC)
 
-    # Threshold
-    white_pixels = np.sum(letter_inverted > 128)
-    total_pixels = letter_inverted.size
-    if white_pixels < total_pixels * 0.02:
-        _, letter_bw = cv2.threshold(letter_inverted, 100, 255, cv2.THRESH_BINARY)
-    else:
-        _, letter_bw = cv2.threshold(letter_inverted, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Step 8: Convert to BGR (YOLO expects 3 channels)
+    result = cv2.cvtColor(resized, cv2.COLOR_GRAY2BGR)
 
-    white_pixels_after = np.sum(letter_bw > 128)
-    if white_pixels_after < total_pixels * 0.01:
-        letter_bw = cv2.adaptiveThreshold(
-            letter_inverted, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY, 11, 2
-        )
-
-    letter_final = cv2.cvtColor(letter_bw, cv2.COLOR_GRAY2BGR)
-    letter_resized = cv2.resize(letter_final, (64, 64), interpolation=cv2.INTER_CUBIC)
-
-    canvas = np.zeros((64, 64, 3), dtype=np.uint8)
-    rh, rw = letter_resized.shape[:2]
-    start_y = max(0, (64 - rh) // 2)
-    start_x = max(0, (64 - rw) // 2)
-    end_y = min(64, start_y + rh)
-    end_x = min(64, start_x + rw)
-    canvas[start_y:end_y, start_x:end_x] = letter_resized[:end_y - start_y, :end_x - start_x]
-    return canvas
-
-
+    return result
 # ═══════════════ OCR — IDENTITY ONLY ═══════════════
 
 def ocr_read_raw(image):
     """
     OCR reads the image to identify WHAT WORD was written.
-    This is used purely for word identity (did the child write the right word?).
-    Dyslexia detection is NOT done here — that is YOLO's job.
-    Returns: (text, confidence)
+    Simplified preprocessing for better results.
     """
     if not OCR_AVAILABLE:
         return None, 0
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
+    # Handle both grayscale and color images
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    elif len(image.shape) == 3 and image.shape[2] == 4:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
+    else:
+        gray = image
+
+    # Simple denoise only (no CLAHE - it can create artifacts)
+    denoised = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
+    
+    # Simple threshold to make text stand out
+    _, binary = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Try both original and thresholded
+    approaches = [
+        ('denoised', denoised),
+        ('binary', binary)
+    ]
 
     ocr_results = []
     configs = [
-        '--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-        '--psm 8 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        '--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyz',
+        '--psm 8 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyz',
     ]
-    for config in configs:
-        for img_version in [gray, enhanced]:
-            text = pytesseract.image_to_string(img_version, config=config).strip().lower()
-            cleaned = ''.join(c for c in text if c.isalpha())
-            if cleaned:
-                try:
+    
+    for name, img in approaches:
+        for config in configs:
+            try:
+                text = pytesseract.image_to_string(img, config=config).strip().lower()
+                cleaned = ''.join(c for c in text if c.isalpha())
+                if cleaned:
                     conf_data = pytesseract.image_to_data(
-                        img_version,
+                        img,
                         output_type=pytesseract.Output.DICT,
                         config=config
                     )
                     conf_values = [int(c) for c in conf_data['conf'] if c != '-1']
                     avg_conf = np.mean(conf_values) if conf_values else 0
-                except Exception:
-                    avg_conf = 30
-                ocr_results.append({'text': cleaned, 'confidence': avg_conf})
+                    ocr_results.append({
+                        'text': cleaned,
+                        'confidence': avg_conf,
+                        'method': name
+                    })
+            except Exception:
+                continue
 
     if not ocr_results:
         return None, 0
 
-    best = max(ocr_results, key=lambda x: x['confidence'])
-    print(f"   OCR (identity): '{best['text']}' (confidence: {best['confidence']:.0f}%)")
+    # Sort by confidence
+    ocr_results.sort(key=lambda x: x['confidence'], reverse=True)
+    best = ocr_results[0]
+    print(f"   OCR (identity): '{best['text']}' (conf: {best['confidence']:.0f}%)")
     return best['text'], best['confidence']
-
 
 # ═══════════════ LETTER SEGMENTATION ═══════════════
 
@@ -1109,27 +1165,30 @@ def get_user_stats():
         'accuracy': accuracy
     })
 
-
 @app.route('/api/worksheet')
 @login_required
 def generate_worksheet():
-    # Get only the theme parameter (no level or lang)
+    """
+    Generate a printable worksheet with dot-to-dot letter tracing.
+    Each word shows dotted letters for tracing practice.
+    """
+    # Get only the theme parameter
     theme = request.args.get('theme', 'animals')
     
-    # Get words from BOTH easy and medium levels for the selected theme
+    # Get words from BOTH easy and medium levels
     words = []
     
     # Get Easy words
     if theme in WORD_LISTS.get('easy', {}):
         easy_words = WORD_LISTS['easy'].get(theme, WORD_LISTS['easy']['default'])
-        words.extend(easy_words[:8])  # Take first 8
+        words.extend(easy_words[:8])
     
     # Get Medium words
     if theme in WORD_LISTS.get('medium', {}):
         medium_words = WORD_LISTS['medium'].get(theme, WORD_LISTS['medium']['default'])
-        words.extend(medium_words[:8])  # Take first 8
+        words.extend(medium_words[:8])
     
-    # Fallback: if no words found (shouldn't happen)
+    # Fallback: if no words found
     if not words:
         words = WORD_LISTS['easy']['default'] + WORD_LISTS['medium']['default']
     
@@ -1141,77 +1200,104 @@ def generate_worksheet():
     c = pdf_canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     
-    # Header
+    # ─── HEADER ───
     c.setFont("Helvetica-Bold", 24)
-    c.setFillColorRGB(0.18, 0.23, 0.55)  # Dark blue
+    c.setFillColorRGB(0.18, 0.23, 0.55)
     c.drawString(50, height - 50, "✏️ Handwriting Practice Worksheet")
     
     c.setFont("Helvetica", 14)
     c.setFillColorRGB(0.4, 0.4, 0.4)
     c.drawString(50, height - 80, f"Theme: {theme.title()} (16 words)")
+    c.drawString(50, height - 100, "Trace the dotted letters, then practice writing on your own!")
     
     # Draw a line under header
     c.setStrokeColorRGB(0.18, 0.23, 0.55)
     c.setLineWidth(2)
-    c.line(50, height - 110, width - 50, height - 110)
+    c.line(50, height - 115, width - 50, height - 115)
     
-    # Start word list
-    y = height - 150
+    # ─── WORD LIST WITH DOT-TO-DOT LETTERS ───
+    y = height - 160
     c.setFont("Helvetica-Bold", 18)
     c.setFillColorRGB(0, 0, 0)
     
-    # Track which words are easy vs medium for labeling
+    # Track which words are easy vs medium
     easy_count = len(WORD_LISTS['easy'].get(theme, WORD_LISTS['easy']['default'])) if theme in WORD_LISTS.get('easy', {}) else 8
     easy_count = min(easy_count, 8)
     
     for idx, word in enumerate(words):
-        # Add level label for first easy and first medium word
+        # Check if we need a new page
+        if y < 100:
+            c.showPage()
+            y = height - 100
+            c.setFont("Helvetica-Bold", 18)
+            c.setFillColorRGB(0, 0, 0)
+        
+        # Add level label
         if idx == 0:
-            c.setFont("Helvetica-Bold", 12)
-            c.setFillColorRGB(0, 0.5, 0)  # Green
+            c.setFont("Helvetica-Bold", 14)
+            c.setFillColorRGB(0, 0.5, 0)
             c.drawString(50, y + 5, "🔵 EASY WORDS")
             c.setFont("Helvetica-Bold", 18)
             c.setFillColorRGB(0, 0, 0)
-            y -= 20
+            y -= 25
         elif idx == easy_count:
-            c.setFont("Helvetica-Bold", 12)
-            c.setFillColorRGB(0.8, 0.5, 0)  # Orange
+            c.setFont("Helvetica-Bold", 14)
+            c.setFillColorRGB(0.8, 0.5, 0)
             c.drawString(50, y + 5, "🟠 MEDIUM WORDS")
             c.setFont("Helvetica-Bold", 18)
             c.setFillColorRGB(0, 0, 0)
-            y -= 20
+            y -= 25
         
-        # Draw the word
-        c.setFont("Helvetica-Bold", 18)
-        c.drawString(50, y, word)
+        # ── DRAW WORD WITH DOT-TO-DOT LETTERS ──
+        letters = list(word)
         
-        # Draw 3 writing lines
-        c.setFont("Helvetica", 12)
-        c.setFillColorRGB(0.8, 0.8, 0.8)
-        line_start_x = 180
-        line_end_x = 530
+        # Draw the word label (on the left)
+        c.setFont("Helvetica-Bold", 16)
+        c.setFillColorRGB(0, 0, 0)
+        c.drawString(50, y - 5, f"{word}:")
         
-        for i in range(3):
-            c.setStrokeColorRGB(0.8, 0.8, 0.8)
+        # Draw tracing area
+        c.setFont("Helvetica", 10)
+        c.setFillColorRGB(0.4, 0.4, 0.4)
+        c.drawString(160, y + 5, "Trace →")
+        
+        # Draw each letter as dot-to-dot tracing
+        start_x = 220
+        letter_spacing = 35
+        
+        for i, letter in enumerate(letters):
+            x = start_x + i * letter_spacing
+            
+            # Draw the letter as a dotted outline (grey, faint)
+            c.setFillColorRGB(0.6, 0.6, 0.6)
+            c.setFont("Helvetica", 28)
+            c.drawString(x, y - 30, letter)
+            
+            # Draw a green starting dot (using path)
+            c.setFillColorRGB(0, 0.7, 0)
+            c.setStrokeColorRGB(0, 0.7, 0)
             c.setLineWidth(1)
-            # Draw dashed line for writing
-            c.setDash(3, 3)  # Dashed line
-            c.line(line_start_x, y - 5 - (i * 25), line_end_x, y - 5 - (i * 25))
+            # CORRECTED: Use beginPath + drawPath with fill=1
+            p = c.beginPath()
+            p.circle(x + 5, y - 5, 2)
+            c.drawPath(p, fill=1, stroke=0)
+            
+            # Draw a dashed line under the letter (for writing practice)
+            c.setStrokeColorRGB(0.7, 0.7, 0.7)
+            c.setLineWidth(1)
+            c.setDash(2, 2)
+            c.line(x, y + 5, x + 25, y + 5)
             c.setDash()  # Reset to solid
         
-        y -= 75  # Move down for next word
-        
-        # Check if we need a new page
-        if y < 80:
-            c.showPage()
-            y = height - 80
-            c.setFont("Helvetica-Bold", 18)
+        # Move down for next word
+        y -= 55
+        y -= 10  # Extra space between words
     
-    # Footer
+    # ─── FOOTER ───
     c.setFont("Helvetica", 10)
     c.setFillColorRGB(0.6, 0.6, 0.6)
     c.drawString(50, 30, f"Generated by DyslexiAI - Theme: {theme.title()}")
-    c.drawString(50, 20, "Practice each word 3 times. Take a photo and upload for analysis!")
+    c.drawString(50, 20, "Trace the dotted letters to learn proper formation. Practice writing on your own!")
     
     c.save()
     buffer.seek(0)
@@ -1338,8 +1424,302 @@ def predict():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+    # ═══════════════ SINGLE LETTER PREDICTION (FOR CANVAS) ═══════════════
 
+@app.route('/predict_letter', methods=['POST'])
+def predict_letter():
+    """
+    Predict a SINGLE letter (for canvas writing).
+    This bypasses OCR and segmentation since the letter is already isolated.
+    """
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image uploaded'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save the image
+        filepath, filename = save_uploaded_image(file)
+        
+        # Get expected letter
+        expected_letter = request.form.get('expected_word', '?').lower().strip()
+        letter_index = int(request.form.get('letter_index', 0))
+        total_letters = int(request.form.get('total_letters', 1))
+        full_word = request.form.get('full_word', '')
+        
+        # Read image
+        img = cv2.imread(filepath)
+        if img is None:
+            cleanup_temp_files()
+            return jsonify({'error': 'Could not read image'}), 400
+        
+        # ── MINIMAL PREPROCESSING ──
+        # 1. Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # 2. Resize to 64x64 (if not already)
+        if gray.shape[0] != 64 or gray.shape[1] != 64:
+            gray = cv2.resize(gray, (64, 64), interpolation=cv2.INTER_CUBIC)
+        
+        # 3. Simple threshold - make WHITE letter on BLACK background
+        _, binary = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        # 4. Check polarity: if more than half is white, it's wrong
+        white_ratio = np.sum(binary > 128) / binary.size
+        if white_ratio > 0.5:
+            binary = cv2.bitwise_not(binary)
+        
+        # 5. Convert to BGR for YOLO
+        letter_img = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
+        
+        # ── RUN YOLO ──
+        if model is None:
+            cleanup_temp_files()
+            return jsonify({'error': 'YOLO model not loaded'}), 500
+        
+        # Save temp file and run YOLO
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f'temp_letter_{letter_index}.png')
+        cv2.imwrite(temp_path, letter_img)
+        
+        try:
+            result = model(temp_path, conf=0.15, iou=0.5, imgsz=64)[0]
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            cleanup_temp_files()
+            return jsonify({'error': f'YOLO error: {e}'}), 500
+        
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        
+        # Parse YOLO result
+        detected_class = CLASS_NORMAL
+        confidence = 0.0
+        
+        if result.boxes is not None and len(result.boxes) > 0:
+            cls_ids = result.boxes.cls.cpu().numpy().astype(int)
+            confs = result.boxes.conf.cpu().numpy()
+            best_idx = np.argmax(confs)
+            detected_class = int(cls_ids[best_idx])
+            confidence = float(confs[best_idx])
+        
+        class_names = {CLASS_NORMAL: 'normal', CLASS_REVERSAL: 'reversal', CLASS_CORRECTED: 'corrected'}
+        class_label = class_names.get(detected_class, 'unknown')
+        
+        # Determine if this is a dyslexia indicator
+        is_reversal = (detected_class == CLASS_REVERSAL)
+        is_corrected = (detected_class == CLASS_CORRECTED)
+        is_normal = (detected_class == CLASS_NORMAL)
+        
+        # Determine type
+        if is_reversal:
+            detail_type = 'reversal'
+        elif is_corrected:
+            detail_type = 'corrected'
+        else:
+            detail_type = 'normal'
+        
+        # Clean up temp files
+        cleanup_temp_files()
+        
+        return jsonify({
+            'letter': expected_letter,
+            'expected_letter': expected_letter,
+            'classification': class_label,
+            'confidence': round(confidence * 100, 1),
+            'type': detail_type,
+            'is_reversal': is_reversal,
+            'is_corrected': is_corrected,
+            'is_normal': is_normal,
+            'has_dyslexia': is_reversal,
+            'is_correct': is_normal or is_corrected,
+            'letter_index': letter_index,
+            'total_letters': total_letters,
+            'full_word': full_word
+        })
+        
+    except Exception as e:
+        print(f"❌ Error in predict_letter: {e}")
+        import traceback
+        traceback.print_exc()
+        cleanup_temp_files()
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/predict_worksheet', methods=['POST'])
+def predict_worksheet():
+    """
+    Predict a WORKSHEET image with per-letter boxes.
+    Extracts each letter from its box and processes individually.
+    """
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image uploaded'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save the image
+        filepath, filename = save_uploaded_image(file)
+        expected_word = request.form.get('expected_word', 'dog').lower().strip()
+        source = request.form.get('source', 'upload')
+        
+        # Read image
+        img = cv2.imread(filepath)
+        if img is None:
+            cleanup_temp_files()
+            return jsonify({'error': 'Could not read image'}), 400
+        
+        # ── EXTRACT LETTERS FROM BOXES ──
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Find contours
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Filter and sort contours (left to right)
+        boxes = []
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            # Filter: must be letter-sized (adjust based on image)
+            if 10 < w < 100 and 10 < h < 100:
+                boxes.append((x, y, w, h))
+        
+        # Sort by X position
+        boxes.sort(key=lambda b: b[0])
+        
+        # Match expected letters count
+        expected_letters = list(expected_word)
+        if len(boxes) != len(expected_letters):
+            # Fallback: try to detect boxes by grid pattern
+            # For simplicity, return error if count mismatches
+            cleanup_temp_files()
+            return jsonify({
+                'error': f'Found {len(boxes)} letter boxes but expected {len(expected_letters)}. Please ensure each letter is in its box.'
+            }), 400
+        
+        # ── PROCESS EACH LETTER ──
+        all_results = []
+        all_reversals = []
+        
+        for i, (x, y, w, h) in enumerate(boxes):
+            expected_letter = expected_letters[i] if i < len(expected_letters) else '?'
+            
+            # Crop the letter
+            pad = 4
+            x1 = max(0, x - pad)
+            y1 = max(0, y - pad)
+            x2 = min(img.shape[1], x + w + pad)
+            y2 = min(img.shape[0], y + h + pad)
+            letter_crop = img[y1:y2, x1:x2]
+            
+            if letter_crop is None or letter_crop.size == 0:
+                continue
+            
+            # Preprocess for YOLO (same as canvas)
+            letter_for_model = convert_letter_for_model(letter_crop)
+            if letter_for_model is None:
+                continue
+            
+            # Run YOLO
+            temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f'temp_worksheet_{i}.png')
+            cv2.imwrite(temp_path, letter_for_model)
+            
+            try:
+                result = model(temp_path, conf=0.15, iou=0.5, imgsz=64)[0]
+            except Exception as e:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                continue
+            
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            
+            # Parse result
+            detected_class = CLASS_NORMAL
+            confidence = 0.0
+            
+            if result.boxes is not None and len(result.boxes) > 0:
+                cls_ids = result.boxes.cls.cpu().numpy().astype(int)
+                confs = result.boxes.conf.cpu().numpy()
+                best_idx = np.argmax(confs)
+                detected_class = int(cls_ids[best_idx])
+                confidence = float(confs[best_idx])
+            
+            class_names = {CLASS_NORMAL: 'normal', CLASS_REVERSAL: 'reversal', CLASS_CORRECTED: 'corrected'}
+            class_label = class_names.get(detected_class, 'unknown')
+            
+            is_reversal = (detected_class == CLASS_REVERSAL)
+            is_corrected = (detected_class == CLASS_CORRECTED)
+            is_normal = (detected_class == CLASS_NORMAL)
+            
+            if is_reversal:
+                detail_type = 'reversal'
+            elif is_corrected:
+                detail_type = 'corrected'
+            else:
+                detail_type = 'normal'
+            
+            all_results.append({
+                'position': i + 1,
+                'expected': expected_letter,
+                'classification': class_label,
+                'confidence': round(confidence * 100, 1),
+                'type': detail_type,
+                'is_reversal': is_reversal
+            })
+            
+            if is_reversal:
+                all_reversals.append(all_results[-1])
+        
+        # ── AGGREGATE RESULTS ──
+        has_dyslexia = len(all_reversals) > 0
+        total_letters = len(all_results)
+        dyslexia_count = len(all_reversals)
+        dyslexia_confidence = round((dyslexia_count / max(total_letters, 1)) * 100, 1)
+        
+        # Build feedback
+        if has_dyslexia:
+            reversal_letters = [r['expected'] for r in all_reversals]
+            fun_feedback = f"🔍 Found {dyslexia_count} reversed letter(s): {', '.join(reversal_letters)}. Practice writing these letters correctly! (Confidence: {dyslexia_confidence}%)"
+            result_level = 'Dyslexia Detected'
+            is_correct = False
+        else:
+            fun_feedback = '🌟 All letters look correct! Great writing!'
+            result_level = 'No Dyslexia'
+            is_correct = True
+        
+        # Clean up
+        cleanup_temp_files()
+        
+        return jsonify({
+            'expected_word': expected_word,
+            'written_word': expected_word,  # We assume the user wrote the expected word
+            'is_correct': is_correct,
+            'has_dyslexia': has_dyslexia,
+            'dyslexia_confidence': dyslexia_confidence,
+            'letter_details': all_results,
+            'reversal_details': all_reversals,
+            'total_letters': total_letters,
+            'dyslexia_count': dyslexia_count,
+            'result_level': result_level,
+            'fun_feedback': fun_feedback,
+            'method': 'worksheet',
+            'show_letter_table': True,
+            'source': source
+        })
+        
+    except Exception as e:
+        print(f"❌ Error in predict_worksheet: {e}")
+        import traceback
+        traceback.print_exc()
+        cleanup_temp_files()
+        return jsonify({'error': str(e)}), 500
+    
 if __name__ == '__main__':
     print("=" * 60)
     print("🦉 Smart Dyslexia Detector — YOLO Primary Edition")

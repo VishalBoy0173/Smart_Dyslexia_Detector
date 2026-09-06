@@ -16,9 +16,13 @@
                 <a href="{{ url_for('dashboard') }}" class="nav-item"><span class="nav-icon">📊</span> Dashboard</a>
                 <a href="{{ url_for('upload_page') }}" class="nav-item active"><span class="nav-icon">📤</span> Upload Word</a>
                 <a href="{{ url_for('canvas_page') }}" class="nav-item"><span class="nav-icon">✍️</span> Canvas Writing</a>
+
                 <div class="nav-section-label">Practice</div>
                 <a href="{{ url_for('practice_page') }}" class="nav-item"><span class="nav-icon">🎮</span> Games</a>
+                <!-- ✅ ADDED: Worksheets link -->
+                <a href="{{ url_for('worksheets_page') }}" class="nav-item"><span class="nav-icon">📄</span> Worksheets</a>
                 <a href="{{ url_for('letter_guide') }}" class="nav-item"><span class="nav-icon">📝</span> Letter Guide</a>
+
                 <div class="nav-section-label">Activity</div>
                 <a href="{{ url_for('progress_page') }}" class="nav-item"><span class="nav-icon">📈</span> Progress</a>
                 <a href="{{ url_for('history_page') }}" class="nav-item"><span class="nav-icon">📋</span> History</a>
@@ -47,10 +51,11 @@
                 </div>
                 <input type="hidden" id="expectedWord" value="dog">
 
+                <!-- Upload Zone -->
                 <div class="upload-zone mt-2" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                     <div class="upload-zone-icon">📁</div>
-                    <div class="upload-zone-title">Click to upload or drag and drop</div>
-                    <div class="upload-zone-sub">PNG, JPG, JPEG • Max 10MB</div>
+                    <div class="upload-zone-title" id="uploadZoneTitle">Click to upload or drag and drop</div>
+                    <div class="upload-zone-sub" id="uploadZoneSub">PNG, JPG, JPEG • Max 10MB</div>
                     <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" hidden>
                 </div>
 
@@ -99,7 +104,7 @@
                             </div>
                         </div>
                         
-                        <!-- YOLO Per-Letter Analysis with Detected Column -->
+                        <!-- YOLO Per-Letter Analysis -->
                         <div>
                             <h4 style="margin-bottom: 0.5rem;">🧠 Letter-by-Letter Analysis (YOLOv11)</h4>
                             <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #e0e0e0;">
@@ -127,7 +132,9 @@
                         </div>
                     </div>
                 </div>
-                <!-- ========== END TRANSPARENCY SECTION ========== -->
+                <!-- ============================================================ -->
+                <!-- END TRANSPARENCY SECTION                                      -->
+                <!-- ============================================================ -->
 
                 <!-- Audio elements for feedback -->
                 <audio id="soundCorrect" preload="auto">
@@ -144,19 +151,21 @@
     </div>
 
     <script>
-    // Word lists organized by level and theme
+    // ============================================================
+    // WORD LISTS (Fallback if API fails)
+    // ============================================================
     const wordLists = {
         'easy': {
-            'default': ['dog'],
-            'animals': ['dog'],
-            'food': ['egg'],
-            'colors': ['red']
+            'default': ['dog', 'cat', 'sun', 'red', 'egg', 'ant', 'bee', 'cow'],
+            'animals': ['dog', 'cat', 'ant', 'bee', 'cow', 'pig', 'hen', 'duck'],
+            'food': ['egg', 'jam', 'ham', 'pie', 'milk', 'bun', 'rice', 'corn'],
+            'colors': ['red', 'blue', 'pink', 'gold', 'gray', 'lime', 'beige', 'plum']
         },
         'medium': {
-            'default': ['rabbit'],
-            'animals': ['rabbit'],
-            'food': ['apple'],
-            'colors': ['purple']
+            'default': ['rabbit', 'apple', 'purple', 'river', 'jump', 'bird', 'brown', 'blue'],
+            'animals': ['rabbit', 'dolphin', 'penguin', 'butterfly', 'dragon', 'peacock', 'badger', 'panda'],
+            'food': ['apple', 'burger', 'pancake', 'waffle', 'donut', 'pumpkin', 'broccoli', 'cucumber'],
+            'colors': ['purple', 'bronze', 'silver', 'copper', 'maroon', 'crimson', 'indigo', 'violet']
         }
     };
     
@@ -164,7 +173,45 @@
     let currentTheme = '';
     let currentLang = 'english';
     let selectedFile = null;
+    let uploadMode = 'regular';
 
+    // ============================================================
+    // UPLOAD MODE FUNCTIONS
+    // ============================================================
+    function setUploadMode(mode) {
+        uploadMode = mode;
+        
+        const regularBtn = document.getElementById('regularModeBtn');
+        const worksheetBtn = document.getElementById('worksheetModeBtn');
+        
+        if (mode === 'regular') {
+            regularBtn.style.background = 'var(--primary)';
+            regularBtn.style.color = 'white';
+            regularBtn.style.border = 'none';
+            worksheetBtn.style.background = 'var(--surface)';
+            worksheetBtn.style.color = 'var(--text)';
+            worksheetBtn.style.border = '2px solid var(--border)';
+            
+            document.getElementById('uploadZoneTitle').textContent = 'Click to upload or drag and drop';
+            document.getElementById('uploadZoneSub').textContent = 'PNG, JPG, JPEG • Max 10MB';
+        } else {
+            worksheetBtn.style.background = 'var(--primary)';
+            worksheetBtn.style.color = 'white';
+            worksheetBtn.style.border = 'none';
+            regularBtn.style.background = 'var(--surface)';
+            regularBtn.style.color = 'var(--text)';
+            regularBtn.style.border = '2px solid var(--border)';
+            
+            document.getElementById('uploadZoneTitle').textContent = 'Upload Worksheet Image';
+            document.getElementById('uploadZoneSub').textContent = 'PNG, JPG, JPEG • Worksheet with letter boxes';
+        }
+        
+        removeImage();
+    }
+
+    // ============================================================
+    // WORD SELECTION FUNCTIONS
+    // ============================================================
     function changeLevel(level, event) {
         currentLevel = level;
         document.querySelectorAll('.level-pill').forEach(btn => btn.classList.remove('active'));
@@ -239,7 +286,6 @@
         
         const ocr = data.ocr_data;
         
-        // Show OCR info
         document.getElementById('ocrTextDisplay').textContent = ocr.text || '(not detected)';
         document.getElementById('ocrExpectedDisplay').textContent = data.expected_word || '?';
         
@@ -248,7 +294,6 @@
         confEl.textContent = confValue > 0 ? `${confValue}%` : 'Not detected';
         confEl.style.color = confValue >= 70 ? '#27ae60' : (confValue >= 30 ? '#f39c12' : '#e74c3c');
         
-        // Show warning if low confidence
         const warningEl = document.getElementById('ocrWarning');
         if (confValue < 30 && confValue > 0) {
             warningEl.style.display = 'block';
@@ -262,7 +307,6 @@
             warningEl.style.display = 'none';
         }
         
-        // Populate YOLO table with Detected column
         const tableBody = document.getElementById('transparencyTableBody');
         tableBody.innerHTML = '';
         
@@ -276,7 +320,6 @@
                 const isNormal = detail.type === 'normal';
                 const ignored = detail.ignored_reversal || false;
                 
-                // Get the detected value
                 const detected = detail.detected || detail.expected || '?';
                 
                 let label, color, emoji;
@@ -331,7 +374,6 @@
             `;
         }
         
-        // Show summary
         const summaryEl = document.getElementById('transparencySummaryText');
         if (data.has_dyslexia) {
             const reversalLetters = data.reversal_details ? data.reversal_details.map(r => r.expected).join(', ') : '';
@@ -349,7 +391,6 @@
             summaryEl.innerHTML = `ℹ️ <strong>Analysis Complete</strong> - ${data.total_letters || 0} letters analyzed.`;
         }
         
-        // Show the transparency section
         document.getElementById('transparencySection').style.display = 'block';
         document.getElementById('transparencySection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -459,6 +500,7 @@
                     <img src="${e.target.result}" style="max-width: 300px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <div style="margin-top: 8px; font-size: 0.8em; color: #7a8a9a;">
                         ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                        ${uploadMode === 'worksheet' ? '📋 Worksheet Mode' : '📄 Regular Mode'}
                     </div>
                 </div>
             `;
@@ -503,12 +545,15 @@
         formData.append('image', selectedFile);
         formData.append('expected_word', expectedWord);
         formData.append('source', 'upload');
+        formData.append('mode', uploadMode);
+        
+        const endpoint = uploadMode === 'worksheet' ? '/predict_worksheet' : '/predict';
         
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 60000);
             
-            const response = await fetch('/predict', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formData,
                 signal: controller.signal
@@ -520,12 +565,10 @@
             loadingDiv.classList.remove('show');
             analyzeBtn.disabled = false;
             
-            // ========== DISPLAY TRANSPARENCY ==========
             if (data.ocr_data || data.letter_details) {
                 displayTransparency(data);
             }
             
-            // ========== DISPLAY RESULT ==========
             if (data.error) {
                 showResult('⚠️', 'Oops!', data.error, 'unclear');
                 return;
@@ -556,10 +599,11 @@
         }
     }
 
-    // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
         fetchNewWord();
         fetchStars();
+        console.log('🦉 Upload Page Ready ✅');
+        console.log('💡 Switch between "Regular Upload" and "Worksheet Upload" modes');
     });
     </script>
 </body>
